@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SlowJog</string>
+    <string name="home_title">超慢跑節拍器</string>
+    <string name="bpm_unit">BPM</string>
+    <string name="bpm_minus">−1</string>
+    <string name="bpm_plus">+1</string>
+    <string name="tap_tempo">點拍子定速</string>
+    <string name="tap_tempo_hint">跟著你的腳步連續點幾下，會自動換算成 BPM</string>
+    <string name="volume">節拍音量</string>
+    <string name="start">開始</string>
+    <string name="stop">停止</string>
+    <string name="version_format">版本 %1$s</string>
+
+    <string name="notification_channel_name">節拍器</string>
+    <string name="notification_title">節拍器運作中</string>
+    <string name="notification_text">%1$d BPM</string>
+    <string name="notification_stop">停止</string>
+</resources>

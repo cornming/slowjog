@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 節拍器外形：梯形機身加上擺錘 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,30 L62,30 L74,80 L34,80 Z" />
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M52.5,40 L55.5,40 L60,70 L48,70 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M53,44 L55,44 L62,60 L60.5,61 Z" />
+</vector>
