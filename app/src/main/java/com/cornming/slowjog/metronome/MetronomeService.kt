@@ -21,6 +21,7 @@ class MetronomeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        alive = true
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(
@@ -37,18 +38,22 @@ class MetronomeService : Service() {
             return START_NOT_STICKY
         }
 
+        val hold = intent?.action == ACTION_HOLD
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
-            buildNotification(),
+            buildNotification(hold),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
         )
+        if (hold) return START_NOT_STICKY // 只是待命，節拍等開始超慢跑才響
         MetronomeController.engine.start()
         MetronomeController.onEngineStarted()
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
+        alive = false
+        MetronomeController.onServiceDestroyed()
         MetronomeController.engine.stop()
         MetronomeController.onEngineStopped()
         super.onDestroy()
@@ -56,7 +61,7 @@ class MetronomeService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(hold: Boolean = false): Notification {
         val openApp = PendingIntent.getActivity(
             this,
             0,
@@ -73,8 +78,8 @@ class MetronomeService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(getString(R.string.notification_title))
-            .setContentText(getString(R.string.notification_text, bpm))
+            .setContentTitle(getString(if (hold) R.string.notification_title_hold else R.string.notification_title))
+            .setContentText(getString(if (hold) R.string.notification_text_hold else R.string.notification_text, bpm))
             .setContentIntent(openApp)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -85,6 +90,12 @@ class MetronomeService : Service() {
     companion object {
         const val ACTION_START = "com.cornming.slowjog.action.START"
         const val ACTION_STOP = "com.cornming.slowjog.action.STOP"
+        const val ACTION_HOLD = "com.cornming.slowjog.action.HOLD"
+
+        /** 服務目前是否開著（待命或出聲）。 */
+        @Volatile
+        var alive = false
+            private set
         private const val CHANNEL_ID = "metronome"
         private const val NOTIFICATION_ID = 1
     }

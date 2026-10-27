@@ -7,6 +7,7 @@ const path = require('path');
 
 const ANGLES = [0, 15, 30, 45, 60, 75, 90]; // 另一側 45 度由 App 左右鏡像取得
 const FRAMES = 12;                          // 一個步伐循環（兩步）
+const MOVE_FRAMES = 24;                      // 暖身與伸展動作一個循環的格數（慢動作要多一點才順）
 const FW = 384, FH = 480, COLS = 6, ROWS = 2;
 
 (async () => {
@@ -61,6 +62,8 @@ const FW = 384, FH = 480, COLS = 6, ROWS = 2;
     window.renderMove = (id, frames, cols) => {
       const move = MOVES[id];
       const sheet = document.getElementById('sheet');
+      sheet.width = FW * cols;
+      sheet.height = FH * Math.ceil(frames / cols);
       const ctx = sheet.getContext('2d');
       ctx.clearRect(0, 0, sheet.width, sheet.height);
       const az = move.angle * Math.PI / 180;
@@ -86,7 +89,7 @@ const FW = 384, FH = 480, COLS = 6, ROWS = 2;
   if (!ONLY || ONLY.includes('move')) {
     const ids = await page.evaluate(() => Object.keys(MOVES));
     for (const id of ids) {
-      const url = await page.evaluate(([i, f, c]) => window.renderMove(i, f, c), [id, FRAMES, COLS]);
+      const url = await page.evaluate(([i, f, c]) => window.renderMove(i, f, c), [id, MOVE_FRAMES, COLS]);
       const file = path.join(OUT, 'mascot_m_' + id + '.png');
       fs.writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
       console.log('wrote', file);

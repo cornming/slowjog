@@ -143,6 +143,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.primary,
             )
         }
+        if (settings.planEnabled) SwitchRow(R.string.settings_auto_on, settings.planAutoEnabled) { AppSettings.setPlanAutoEnabled(it) }
         SwitchRow(R.string.settings_cues_on, settings.cuesEnabled) { AppSettings.setCuesEnabled(it) }
         SwitchRow(R.string.settings_voice_on, settings.voiceEnabled) { AppSettings.setVoiceEnabled(it) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

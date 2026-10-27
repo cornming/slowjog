@@ -8,11 +8,13 @@ import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.music.MusicControl
 import com.cornming.slowjog.plan.Announcements
 import com.cornming.slowjog.plan.StageCue
+import com.cornming.slowjog.plan.StageTransition
 import com.cornming.slowjog.plan.WorkoutPlan
 import com.cornming.slowjog.mascot.MoveSchedule
 import com.cornming.slowjog.voice.VoiceAnnouncer
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.sound.CompletionChime
+import com.cornming.slowjog.sound.Tones
 import com.cornming.slowjog.widget.SlowJogWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +61,8 @@ object WorkoutController {
     private var voice = true
     private var lastStageIndex = -1
     private var lastMoveKey = -1
+    private var autoAdvance = true
+    private var lastCountdown = -1
     private var lastElapsedAnnounced = -1
     private var targetReached = false
     private var targetPrompt = false
@@ -119,10 +123,14 @@ object WorkoutController {
         voice = settings.voiceEnabled
         lastStageIndex = -1
         lastMoveKey = -1
+        lastCountdown = -1
+        autoAdvance = settings.planAutoEnabled && plan != null
         lastElapsedAnnounced = -1
         targetReached = false
         targetPrompt = false
         this.musicRequested = musicRequested
+        // 運動期間先開著前景服務（節拍器待命），之後自動開始超慢跑時才不會被系統擋下。
+        MetronomeController.hold(context.applicationContext)
         publish()
         watchTarget(context.applicationContext)
     }
@@ -141,6 +149,7 @@ object WorkoutController {
                     accrue(now)
                     val elapsedMs = timer.elapsedMs(now)
                     if (timer.running) {
+                        checkCountdown(app, elapsedMs)
                         checkStage(app, elapsedMs)
                         checkMove(app, elapsedMs)
                         checkElapsedVoice(app, elapsedMs)
@@ -151,7 +160,7 @@ object WorkoutController {
                         onTargetReached(app)
                     }
                 }
-                delay(500)
+                delay(200)
             }
         }
     }
@@ -163,6 +172,14 @@ object WorkoutController {
         if (position.index == lastStageIndex) return
         lastStageIndex = position.index
         val stage = position.stage
+        // 自動接續：進入超慢跑階段就開始，離開就停止。
+        if (autoAdvance && timer.running) {
+            when (StageTransition.jogAction(stage?.kind, timer.jogging)) {
+                StageTransition.JogAction.START -> startJog(app)
+                StageTransition.JogAction.END -> endJog(app)
+                StageTransition.JogAction.NONE -> Unit
+            }
+        }
         if (stage != null) {
             StageCue.play(app, stage.kind, sound = cues, vibrate = cues)
             if (voice) VoiceAnnouncer.speak(app, Announcements.stageStart(stage))
@@ -171,6 +188,22 @@ object WorkoutController {
             if (!target.enabled && cues) CompletionChime.play()
             if (voice) VoiceAnnouncer.speak(app, Announcements.PLAN_DONE)
         }
+    }
+
+    /** 階段結束前 5 秒，每秒倒數一次：語音念數字、短嗶一聲。 */
+    private fun checkCountdown(app: Context, elapsedMs: Long) {
+        if (!autoAdvance) return
+        val p = plan ?: return
+        val position = p.position(elapsedMs)
+        val number = StageTransition.countdown(position.remainingMs, p.next(position.index) != null)
+        if (number == null) {
+            lastCountdown = -1
+            return
+        }
+        if (number == lastCountdown) return
+        lastCountdown = number
+        if (cues) Tones.play(Tones.beeps(1))
+        if (voice) VoiceAnnouncer.speak(app, StageTransition.spoken(number), flush = true)
     }
 
     /**
@@ -228,6 +261,10 @@ object WorkoutController {
         publish()
     }
 
+    /** 是否啟用「自動接續階段」（開始運動當下的設定，且有課表）。 */
+    @Synchronized
+    fun autoAdvance(): Boolean = autoAdvance
+
     /** 這次運動的課表（開始運動當下的設定）；沒有啟用課表時為 null。 */
     @Synchronized
     fun plan(): WorkoutPlan? = plan
@@ -255,7 +292,10 @@ object WorkoutController {
         val now = SystemClock.elapsedRealtime()
         accrue(now)
         if (!timer.startJog(now)) return
-        MetronomeController.start(context)
+        if (!MetronomeController.start(context)) {
+            // 系統不讓現在啟動節拍器服務（例如 App 在背景）：還原成沒在跑，請使用者手動開始。
+            timer.endJog(now)
+        }
         publish()
     }
 
@@ -298,6 +338,7 @@ object WorkoutController {
         targetJob?.cancel()
         targetJob = null
         if (MetronomeController.state.value.running) MetronomeController.stop(context)
+        MetronomeController.release(context.applicationContext) // 關掉待命的前景服務
         if (musicRequested && autoStop && !targetReached) MusicControl.pause(context)
         // 到目標時已經響過了；手動儲存結束才補一次完成音效。
         if (save && !targetReached) playChimeSoon()

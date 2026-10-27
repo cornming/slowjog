@@ -72,7 +72,7 @@ fun MascotView(
     val currentFlash by rememberUpdatedState(flashAlpha)
     val currentMoveStage by rememberUpdatedState(moveStage)
     val currentRunning by rememberUpdatedState(running)
-    val moveStageChangedAt = remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    val moveClock = remember { MoveClock() }
 
     var manualOffset by remember { mutableIntStateOf(0) }
     var angle by remember { mutableIntStateOf(0) }
@@ -94,9 +94,6 @@ fun MascotView(
             withFrameMillis { frameClock.longValue = it }
         }
     }
-
-    // 動作時間每 0.2 秒才更新一次，記下更新的時刻，畫面才能在兩次更新之間走得順。
-    LaunchedEffect(moveStage?.elapsedMs) { moveStageChangedAt.longValue = SystemClock.elapsedRealtime() }
 
     // 暖身與伸展：先載入目前與下一個動作的影格表，用不到的就釋放。
     val moveNow = moveStage?.let { MoveSchedule.at(it.kind, it.stageMs, it.elapsedMs) }
@@ -186,8 +183,7 @@ fun MascotView(
             if (!ready) return@Canvas
             val ms = currentMoveStage
             if (ms != null) {
-                val extra = if (currentRunning) (SystemClock.elapsedRealtime() - moveStageChangedAt.longValue).coerceIn(0L, 250L) else 0L
-                val slot = MoveSchedule.at(ms.kind, ms.stageMs, ms.elapsedMs + extra)
+                val slot = MoveSchedule.at(ms.kind, ms.stageMs, moveClock.now(ms.elapsedMs, currentRunning, SystemClock.elapsedRealtime()))
                 val moveSheet = slot?.let { sheets.getMove(it.move) }
                 if (slot != null && moveSheet != null) {
                     val pos = slot.phase * MascotMoveFrames
@@ -244,8 +240,34 @@ fun MascotView(
     }
 }
 
+/**
+ * 動作用的連續時鐘。外面傳進來的階段時間每 0.2 秒才更新一次，直接拿來畫會一頓一頓；
+ * 這裡用系統時間自己往前走，只有和外面差太多（換動作、暫停後繼續）才對齊，不會往回跳。
+ */
+private class MoveClock {
+    private var anchorElapsed = 0L
+    private var anchorReal = 0L
+    private var started = false
+
+    fun now(elapsedMs: Long, running: Boolean, real: Long): Long {
+        if (!running || !started) {
+            anchorElapsed = elapsedMs
+            anchorReal = real
+            started = true
+            return elapsedMs
+        }
+        val predicted = anchorElapsed + (real - anchorReal)
+        if (kotlin.math.abs(predicted - elapsedMs) > 600) {
+            anchorElapsed = elapsedMs
+            anchorReal = real
+            return elapsedMs
+        }
+        return predicted
+    }
+}
+
 /** 暖身與伸展影格表一個循環的格數。 */
-private const val MascotMoveFrames = 12
+private const val MascotMoveFrames = 24
 
 /** 目前階段（暖身或伸展）與階段內已過的時間，讓小人物示範動作。 */
 data class MoveStage(val kind: StageKind, val stageMs: Long, val elapsedMs: Long)

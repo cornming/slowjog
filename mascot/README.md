@@ -9,7 +9,7 @@
 - `render.js`：用無頭瀏覽器把角色轉成透明背景的影格表。
 - `../app/src/main/res/drawable-nodpi/mascot_v<角度>.png`：視角 0、15、30、45、60、75、90 度，共 7 張。每張 6 欄 x 2 列 = 12 格，一格 384 x 480，涵蓋一個步伐循環（兩步）。
 
-- `../app/src/main/res/drawable-nodpi/mascot_m_<動作>.png`：9 個動作各一張，視角固定（見 `moves.js` 的 `angle`），格式同上（12 格一個循環）。App 播放時相鄰兩格疊合淡入，慢動作才順。
+- `../app/src/main/res/drawable-nodpi/mascot_m_<動作>.png`：9 個動作各一張，視角固定（見 `moves.js` 的 `angle`），6 欄 x 4 列 = 24 格一個循環（2304 x 1920）。App 播放時相鄰兩格疊合淡入，慢動作才順。
 
 ## 使用方式
 

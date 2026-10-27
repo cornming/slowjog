@@ -20,11 +20,12 @@ object VoiceAnnouncer {
     private var counter = 0
     private val pending = ArrayDeque<String>()
 
+    /** [flush] 為 true 時打斷正在念的話、馬上念這句（倒數用，數字才跟得上秒數）。 */
     @Synchronized
-    fun speak(context: Context, text: String) {
+    fun speak(context: Context, text: String, flush: Boolean = false) {
         if (failed) return
         if (ready) {
-            say(text)
+            say(text, flush)
             return
         }
         pending.addLast(text)
@@ -61,7 +62,7 @@ object VoiceAnnouncer {
         while (pending.isNotEmpty()) say(pending.removeFirst())
     }
 
-    private fun say(text: String) {
-        tts?.speak(text, TextToSpeech.QUEUE_ADD, null, "slowjog-${counter++}")
+    private fun say(text: String, flush: Boolean = false) {
+        tts?.speak(text, if (flush) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, null, "slowjog-${counter++}")
     }
 }

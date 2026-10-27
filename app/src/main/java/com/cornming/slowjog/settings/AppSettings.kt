@@ -46,6 +46,8 @@ data class Settings(
     val cuesEnabled: Boolean = true,
     /** 語音播報階段與經過時間。 */
     val voiceEnabled: Boolean = true,
+    /** 階段結束前倒數 5 秒，時間到自動開始或停止超慢跑、進入下一階段。 */
+    val planAutoEnabled: Boolean = true,
 ) {
     fun target(): Target = Target(targetType, targetMinutes, targetDistanceM)
 
@@ -75,6 +77,7 @@ object AppSettings {
     private const val KEY_PLAN_COOLDOWN = "planCooldownMin"
     private const val KEY_CUES = "cuesEnabled"
     private const val KEY_VOICE = "voiceEnabled"
+    private const val KEY_PLAN_AUTO = "planAutoEnabled"
 
     private var prefs: SharedPreferences? = null
     private val _settings = MutableStateFlow(Settings())
@@ -109,6 +112,7 @@ object AppSettings {
             planCooldownMin = p.getInt(KEY_PLAN_COOLDOWN, WorkoutPlan.DEFAULT_COOLDOWN).coerceIn(0, 60),
             cuesEnabled = p.getBoolean(KEY_CUES, true),
             voiceEnabled = p.getBoolean(KEY_VOICE, true),
+            planAutoEnabled = p.getBoolean(KEY_PLAN_AUTO, true),
         )
     }
 
@@ -136,6 +140,11 @@ object AppSettings {
     fun setCuesEnabled(value: Boolean) {
         prefs?.edit()?.putBoolean(KEY_CUES, value)?.apply()
         _settings.value = _settings.value.copy(cuesEnabled = value)
+    }
+
+    fun setPlanAutoEnabled(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_PLAN_AUTO, value)?.apply()
+        _settings.value = _settings.value.copy(planAutoEnabled = value)
     }
 
     fun setVoiceEnabled(value: Boolean) {

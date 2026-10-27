@@ -36,6 +36,7 @@ import com.cornming.slowjog.R
 import com.cornming.slowjog.mascot.MoveSchedule
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.plan.Announcements
+import com.cornming.slowjog.plan.StageTransition
 import com.cornming.slowjog.workout.TargetTime
 import com.cornming.slowjog.workout.TargetType
 import com.cornming.slowjog.workout.WorkoutController
@@ -128,6 +129,26 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
             val position = planPosition
             val stage = planStage
             if (stage != null) {
+                val countdown = if (WorkoutController.autoAdvance()) {
+                    StageTransition.countdown(position.remainingMs, plan.next(position.index) != null)
+                } else {
+                    null
+                }
+                if (countdown != null) {
+                    Text(
+                        text = countdown.toString(),
+                        fontSize = 96.sp,
+                        style = MaterialTheme.typography.displayLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    plan.next(position.index)?.let {
+                        Text(
+                            text = stringResource(R.string.workout_countdown_next, Announcements.stageName(it.kind)),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
                 Text(
                     text = stringResource(
                         R.string.workout_stage,

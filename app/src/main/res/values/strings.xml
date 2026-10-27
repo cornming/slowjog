@@ -70,11 +70,12 @@
     <string name="settings_plan_on">使用階段式課表</string>
     <string name="settings_plan_stage">%1$s：%2$d 分鐘</string>
     <string name="settings_plan_total">課表共 %1$d 分鐘</string>
+    <string name="settings_auto_on">自動接續階段：結束前倒數 5 秒，自動開始或停止超慢跑</string>
     <string name="settings_cues_on">階段切換的提示音與震動</string>
     <string name="settings_voice_on">語音播報階段與經過時間</string>
     <string name="settings_cue_test">試聽提示音</string>
     <string name="settings_voice_test">試念一句</string>
-    <string name="settings_plan_help">課表依「整段運動已過的時間」切換階段，暫停時不走；切換時用不同次數的嗶聲加震動提示（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、伸展 4 聲），語音另外每 5 分鐘念一次經過時間。暖身階段會依序做抬膝踏步、手臂繞圈、轉體、屈膝半蹲，伸展階段依序做小腿、大腿前側、前彎、上舉側彎、肩膀伸展，小人物會在運動中畫面示範；階段分鐘設 0 就略過。提示只是通知：節拍器仍要自己按「開始超慢跑」（背景自動啟動前景服務會被 Android 擋下）。語音用手機內建的中文語音，沒有中文語音時不會出聲。提示音與語音的音量跟著媒體音量。</string>
+    <string name="settings_plan_help">課表依「整段運動已過的時間」切換階段，暫停時不走；切換時用不同次數的嗶聲加震動提示（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、伸展 4 聲），語音另外每 5 分鐘念一次經過時間。暖身階段會依序做抬膝踏步、手臂繞圈、轉體、屈膝半蹲，伸展階段依序做小腿、大腿前側、前彎、上舉側彎、肩膀伸展，小人物會在運動中畫面示範；階段分鐘設 0 就略過。「自動接續」開著時，每個階段結束前會倒數 5 秒（語音加嗶聲），暖身結束自動開始超慢跑、超慢跑結束自動停止並進入肌力訓練，再倒數進入伸展；關掉就只有階段提示，要自己按「開始超慢跑」。語音用手機內建的中文語音，沒有中文語音時不會出聲。提示音與語音的音量跟著媒體音量。</string>
     <string name="settings_sound_section">節拍音色</string>
     <string name="settings_sound_click">節拍器（答）</string>
     <string name="settings_sound_clap">拍手</string>
@@ -127,6 +128,7 @@
     <string name="workout_paused">已暫停</string>
     <string name="workout_total_time">整段運動</string>
     <string name="workout_jog_time">超慢跑</string>
+    <string name="workout_countdown_next">接著：%1$s</string>
     <string name="workout_move">動作 %1$d/%2$d：%3$s</string>
     <string name="workout_move_next">下一個動作：%1$s</string>
     <string name="mascot_hint">點一下小人物可以換視角</string>
@@ -155,5 +157,7 @@
     <string name="notification_channel_name">節拍器</string>
     <string name="notification_title">節拍器運作中</string>
     <string name="notification_text">%1$d BPM</string>
+    <string name="notification_title_hold">運動進行中</string>
+    <string name="notification_text_hold">節拍器隨課表自動開始與停止</string>
     <string name="notification_stop">停止</string>
 </resources>
