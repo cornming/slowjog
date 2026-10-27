@@ -12,6 +12,14 @@
     <string name="stop">停止</string>
     <string name="version_format">版本 %1$s</string>
 
+    <string name="update_check">檢查更新</string>
+    <string name="update_checking">檢查更新中…</string>
+    <string name="update_up_to_date">目前已是最新版</string>
+    <string name="update_available">有新版本 %1$s（%2$s）</string>
+    <string name="update_now">下載並更新</string>
+    <string name="update_downloading">下載中 %1$d%%</string>
+    <string name="update_need_permission">請在設定畫面允許 SlowJog 安裝應用程式，回來後再按一次「下載並更新」</string>
+
     <string name="notification_channel_name">節拍器</string>
     <string name="notification_title">節拍器運作中</string>
     <string name="notification_text">%1$d BPM</string>

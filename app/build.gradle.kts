@@ -61,4 +61,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
 
     testImplementation(libs.junit)
+    // 單元測試環境的 org.json 只是空殼，要真的解析 JSON 需要這個實作。
+    testImplementation(libs.org.json)
 }

@@ -10,13 +10,14 @@
 - **背景持續運作**：以前景服務執行，鎖定螢幕或切到其他 App 後仍會繼續，通知上有「停止」按鈕。
 - **可與音樂同時播放**：節拍器不搶音訊焦點，可以邊聽 Spotify 邊用。
 - **運動中螢幕恆亮**，停止後恢復系統設定。
-- 沒有廣告、不追蹤、不需要網路權限。
+- **檢查更新**：開啟 App 時自動檢查 GitHub 上的最新版，有新版就在首頁提示；按「下載並更新」會在 App 內下載 APK 並開啟系統安裝畫面。首頁也有「檢查更新」按鈕可手動檢查。第一次更新時，系統會要求允許 SlowJog 安裝應用程式。
+- 沒有廣告、不追蹤。網路權限只用來檢查與下載更新，只連到 GitHub，不送出任何使用者資料。
 
 ## 下載與安裝
 
 到 [Releases](../../releases) 下載最新的 `slowjog-v*.apk` 安裝。每次推送到 `main` 都會自動建置並發佈新版本，Release 頁面附有這個版本的更新日誌。
 
-安裝新版時可以直接覆蓋舊版，不需要先移除：所有版本都使用 repo 內固定的 debug keystore（`keystore/debug.keystore`）簽章，簽章一致才能覆蓋安裝。
+新版也可以在 App 內更新（見上方「檢查更新」）。安裝新版時可以直接覆蓋舊版，不需要先移除：所有版本都使用 repo 內固定的 debug keystore（`keystore/debug.keystore`）簽章，簽章一致才能覆蓋安裝。
 
 ## 版本與更新日誌
 
@@ -46,6 +47,10 @@ app/src/main/java/com/cornming/slowjog/
 │   ├── MetronomeService.kt     # 前景服務與通知
 │   ├── MetronomeController.kt  # 畫面與引擎之間的單一入口與狀態
 │   └── TapTempo.kt             # 點拍子換算 BPM（純 Kotlin，有單元測試）
+├── update/
+│   ├── UpdateController.kt     # 檢查 GitHub 最新版、下載 APK、交給系統安裝
+│   ├── ReleaseInfo.kt          # 解析 Release 資訊（有單元測試）
+│   └── Versions.kt             # 版本號比較（有單元測試）
 └── ui/
     ├── HomeScreen.kt
     └── SlowJogTheme.kt

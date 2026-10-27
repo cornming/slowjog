@@ -193,13 +193,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
-            if (versionName.isNotEmpty()) {
-                Text(
-                    modifier = Modifier.padding(top = 8.dp),
-                    text = stringResource(R.string.version_format, versionName),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
+            UpdateSection(versionName = versionName, modifier = Modifier.padding(top = 8.dp))
         }
     }
 }
