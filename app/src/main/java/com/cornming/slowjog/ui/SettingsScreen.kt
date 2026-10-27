@@ -115,7 +115,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             enabled = settings.playlistUri != null,
             onClick = {
                 testStatus = context.getString(R.string.music_connecting)
-                SpotifyPlayer.play(context, settings) { outcome ->
+                SpotifyPlayer.play(context, settings, onProgress = { testStatus = it }) { outcome ->
                     val message = when (outcome) {
                         is SpotifyPlayer.Outcome.Playing -> context.getString(R.string.music_playing)
                         is SpotifyPlayer.Outcome.OpenedSpotify -> outcome.reason

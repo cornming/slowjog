@@ -31,14 +31,20 @@ object SpotifyPlayer {
     }
 
     private const val TAG = "SlowJogSpotify"
-    private const val TIMEOUT_MS = 8_000L
+    private const val HINT_MS = 5_000L
+    private const val TIMEOUT_MS = 25_000L
     private val main = Handler(Looper.getMainLooper())
 
     /**
      * 請 Spotify 播放歌單。結果一定會在主執行緒回報一次：
      * SDK 的回呼可能在背景執行緒，也可能完全沒有回應，所以另外設了逾時，逾時就改開歌單頁。
      */
-    fun play(context: Context, settings: Settings, onResult: (Outcome) -> Unit) {
+    fun play(
+        context: Context,
+        settings: Settings,
+        onProgress: (String) -> Unit = {},
+        onResult: (Outcome) -> Unit,
+    ) {
         val uri = settings.playlistUri
         if (uri == null) {
             onResult(Outcome.Failed("尚未設定歌單"))
@@ -60,9 +66,16 @@ object SpotifyPlayer {
             }
         }
         main.postDelayed({
-            finish { openInSpotify(context, uri, "Spotify 沒有回應，已開啟歌單頁，請按播放") }
+            if (!done.get()) onProgress("還在等待 Spotify 回應。如果 Spotify 跳出授權畫面，請按同意；也可以先手動開啟 Spotify 再試。")
+        }, HINT_MS)
+        main.postDelayed({
+            finish { openInSpotify(context, uri, "Spotify 在 25 秒內沒有回應，已開啟歌單頁，請按播放") }
         }, TIMEOUT_MS)
 
+        if (!SpotifyAppRemote.isSpotifyInstalled(context)) {
+            finish { openInSpotify(context, uri, "這支手機沒有安裝 Spotify") }
+            return
+        }
         try {
             val params = ConnectionParams.Builder(settings.spotifyClientId)
                 .setRedirectUri(REDIRECT_URI)
