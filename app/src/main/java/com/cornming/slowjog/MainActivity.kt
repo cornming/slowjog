@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cornming.slowjog.data.RecordRepository
+import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.ui.HistoryScreen
 import com.cornming.slowjog.ui.HomeScreen
+import com.cornming.slowjog.ui.SettingsScreen
 import com.cornming.slowjog.ui.SlowJogTheme
 import com.cornming.slowjog.ui.WorkoutScreen
 import com.cornming.slowjog.workout.WorkoutController
@@ -29,6 +31,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         RecordRepository.init(applicationContext)
+        AppSettings.init(applicationContext)
         enableEdgeToEdge()
         setContent {
             SlowJogTheme {
@@ -62,11 +65,21 @@ private fun AppRoot() {
                         icon = {},
                         label = { Text(stringResource(R.string.tab_history)) },
                     )
+                    NavigationBarItem(
+                        selected = tab == 2,
+                        onClick = { tab = 2 },
+                        icon = {},
+                        label = { Text(stringResource(R.string.tab_settings)) },
+                    )
                 }
             },
         ) { padding ->
             Box(modifier = Modifier.padding(padding)) {
-                if (tab == 0) HomeScreen() else HistoryScreen()
+                when (tab) {
+                    0 -> HomeScreen()
+                    1 -> HistoryScreen()
+                    else -> SettingsScreen()
+                }
             }
         }
     }

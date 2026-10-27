@@ -16,15 +16,19 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +46,9 @@ import com.cornming.slowjog.data.Stats
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.metronome.MetronomeEngine
 import com.cornming.slowjog.metronome.TapTempo
+import com.cornming.slowjog.settings.AppSettings
+import com.cornming.slowjog.settings.MusicMode
+import com.cornming.slowjog.spotify.SpotifyPlayer
 import com.cornming.slowjog.workout.WorkoutController
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -54,9 +61,26 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     val records by rememberRecords()
     val stats = remember(records) { Stats.compute(records, LocalDate.now()) }
     val tapTempo = remember { TapTempo() }
+    val settings by AppSettings.settings.collectAsStateWithLifecycle()
+    var askMusic by remember { mutableStateOf(false) }
     val versionName = remember { com.cornming.slowjog.update.UpdateController.currentVersion(context) }
 
     val startPreview = rememberWithNotificationPermission { MetronomeController.start(context) }
+
+    // 開始運動；需要時請 Spotify 播放歌單，結果以提示訊息告知。
+    fun startWorkout(playMusic: Boolean) {
+        WorkoutController.start(context)
+        if (playMusic) {
+            SpotifyPlayer.play(context, settings) { outcome ->
+                val message = when (outcome) {
+                    is SpotifyPlayer.Outcome.Playing -> context.getString(R.string.music_playing)
+                    is SpotifyPlayer.Outcome.OpenedSpotify -> outcome.reason
+                    is SpotifyPlayer.Outcome.Failed -> outcome.reason
+                }
+                android.widget.Toast.makeText(context.applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     // 試聽節拍時保持螢幕恆亮，停止後恢復系統設定。
     KeepScreenOn(enabled = state.running)
@@ -176,7 +200,13 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
                     .height(56.dp),
-                onClick = { WorkoutController.start(context) },
+                onClick = {
+                    when {
+                        settings.playlistUri == null || settings.musicMode == MusicMode.NEVER -> startWorkout(false)
+                        settings.musicMode == MusicMode.ALWAYS -> startWorkout(true)
+                        else -> askMusic = true
+                    }
+                },
             ) {
                 Text(
                     text = stringResource(R.string.workout_start),
@@ -185,6 +215,32 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             }
             UpdateSection(versionName = versionName, modifier = Modifier.padding(top = 8.dp))
         }
+    }
+
+    if (askMusic) {
+        AlertDialog(
+            onDismissRequest = { askMusic = false },
+            title = { Text(stringResource(R.string.music_ask_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (settings.shuffle) R.string.music_ask_text_shuffle else R.string.music_ask_text,
+                    ),
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    askMusic = false
+                    startWorkout(true)
+                }) { Text(stringResource(R.string.music_play)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    askMusic = false
+                    startWorkout(false)
+                }) { Text(stringResource(R.string.music_skip)) }
+            },
+        )
     }
 }
 
@@ -215,3 +271,4 @@ internal fun StatItem(label: String, value: String) {
         Text(text = value, style = MaterialTheme.typography.titleSmall)
     }
 }
+

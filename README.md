@@ -4,6 +4,7 @@
 
 ## 目前功能（第一版）
 
+- **運動音樂（Spotify）**：在「設定」貼上 Spotify 歌單連結（自己選的，或請 Claude 在對話裡建立的 AI 歌單都可以）。按「開始運動」時會詢問是否播放這份歌單，也可以改成自動播放或不使用音樂。有填 Spotify Client ID 時，由 App 透過 Spotify App Remote 在背景直接播放，不離開運動中畫面；沒填或連線失敗時，改為開啟 Spotify 的歌單頁，由你按播放。設定步驟寫在 App 的設定頁。
 - **小人物陪跑**：運動中畫面有 Q 版小人物，超慢跑時腳步對齊節拍；每 5 分鐘（超慢跑時間）轉換視角（正面、45 度側面、90 度側面、另一側 45 度，循環），不時冒出鼓勵氣泡。點一下小人物可以立刻換視角並冒出一則氣泡。
 - **運動計時與紀錄**：按「開始運動」進入運動中畫面，整段運動與超慢跑階段分別計時；按「開始超慢跑」才啟動節拍器，結束超慢跑節拍器就停。可暫停、繼續，結束時選擇儲存或放棄。紀錄存在本機，「紀錄」分頁可查看每次的日期、整段與超慢跑時長、BPM，以及累計時間與連續天數。
 - **節拍器**：BPM 可調（40 到 240，預設 180，對應超慢跑建議的每分鐘 180 步）。
@@ -28,6 +29,8 @@
 - App 首頁底部會顯示目前版本，方便確認有沒有更新成功。
 
 ## 本機建置
+
+`app/libs/` 內有 Spotify App Remote SDK 的 AAR（Apache 2.0，來源與雜湊見 `app/libs/README.md`），不需要另外下載。
 
 需要 JDK 17 與 Android SDK。
 
@@ -56,6 +59,11 @@ app/src/main/java/com/cornming/slowjog/
 │   ├── WorkoutRecord.kt        # 運動紀錄（Room）
 │   ├── AppDatabase.kt          # 資料庫與 RecordRepository
 │   └── Stats.kt                # 累計與連續天數（有單元測試）
+├── settings/
+│   └── AppSettings.kt          # 設定（歌單、音樂模式、隨機播放、Client ID），存在本機
+├── spotify/
+│   ├── SpotifyLink.kt          # 解析歌單連結（有單元測試）
+│   └── SpotifyPlayer.kt        # 請 Spotify 播放；失敗時改開歌單頁
 ├── update/
 │   ├── UpdateController.kt     # 檢查 GitHub 最新版、下載 APK、交給系統安裝
 │   ├── ReleaseInfo.kt          # 解析 Release 資訊（有單元測試）
@@ -68,6 +76,7 @@ app/src/main/java/com/cornming/slowjog/
     ├── WorkoutScreen.kt        # 運動中畫面
     ├── MascotView.kt           # 小人物動畫與鼓勵氣泡
     ├── HistoryScreen.kt        # 紀錄分頁
+    ├── SettingsScreen.kt       # 設定分頁
     └── SlowJogTheme.kt
 ```
 

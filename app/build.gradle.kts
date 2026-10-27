@@ -56,6 +56,10 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
+    // Spotify App Remote SDK（官方未上架 Maven，AAR 放在 app/libs），需要搭配 gson。
+    implementation(files("libs/spotify-app-remote-release-0.8.0.aar"))
+    implementation(libs.gson)
+
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

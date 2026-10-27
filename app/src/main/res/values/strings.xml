@@ -10,6 +10,31 @@
     <string name="volume">節拍音量</string>
     <string name="version_format">版本 %1$s</string>
 
+    <string name="tab_settings">設定</string>
+
+    <string name="music_ask_title">要播放 Spotify 超慢跑歌單嗎？</string>
+    <string name="music_ask_text">會播放你在設定裡選好的歌單。</string>
+    <string name="music_ask_text_shuffle">會播放你在設定裡選好的歌單，並開啟隨機播放。</string>
+    <string name="music_play">播放並開始</string>
+    <string name="music_skip">不播放，直接開始</string>
+    <string name="music_playing">已請 Spotify 播放歌單</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_music_section">運動音樂（Spotify）</string>
+    <string name="settings_playlist_label">Spotify 歌單連結</string>
+    <string name="settings_playlist_empty">尚未設定，開始運動時不會詢問音樂</string>
+    <string name="settings_playlist_ok">已設定歌單</string>
+    <string name="settings_playlist_bad">不是 Spotify 歌單連結</string>
+    <string name="settings_playlist_help">在 Spotify 打開歌單，按「分享」再「複製連結」，貼到上面。想要 AI 幫你建一份超慢跑歌單，回到 Claude 對話請它建立，再把連結貼過來。</string>
+    <string name="settings_mode_title">開始運動時</string>
+    <string name="settings_mode_ask">每次詢問是否播放</string>
+    <string name="settings_mode_always">自動播放，不詢問</string>
+    <string name="settings_mode_never">不使用音樂</string>
+    <string name="settings_shuffle">隨機播放</string>
+    <string name="settings_test_play">試播歌單</string>
+    <string name="settings_client_id_label">Spotify Client ID（直接播放才需要）</string>
+    <string name="settings_client_id_help">沒填 Client ID 時，播放會改為開啟 Spotify 的歌單頁，由你按播放。要讓 App 直接在背景播放，只需要設定一次：\n1. 到 developer.spotify.com/dashboard 建立 App，用到的 API 勾選 Android。\n2. Redirect URI 填：%1$s\n3. Android 套件名稱填：%2$s，SHA1 指紋填：%3$s\n4. 把 Client ID 貼在上面。第一次播放時 Spotify 會問你是否授權。需要 Spotify Premium 才能指定播放歌單的順序。</string>
+
     <string name="tab_home">首頁</string>
     <string name="tab_history">紀錄</string>
 
