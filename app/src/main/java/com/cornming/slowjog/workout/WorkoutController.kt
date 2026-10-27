@@ -8,6 +8,7 @@ import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.music.MusicControl
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.sound.CompletionChime
+import com.cornming.slowjog.widget.SlowJogWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -241,7 +242,11 @@ object WorkoutController {
                 jogSec = summary.jogSec,
                 bpm = bpm,
             )
-            scope.launch { RecordRepository.insert(record) }
+            val app = context.applicationContext
+            scope.launch {
+                RecordRepository.insert(record)
+                SlowJogWidget.refresh(app) // 桌面小工具的累計數字跟著更新
+            }
         }
     }
 

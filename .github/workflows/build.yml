@@ -33,7 +33,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: 單元測試並建置 debug APK
-        run: ./gradlew test assembleDebug -PappVersionCode=${VERSION_CODE} -PappVersionName=${VERSION_NAME} --stacktrace
+        run: |
+          status=0
+          ./gradlew test assembleDebug -PappVersionCode=${VERSION_CODE} -PappVersionName=${VERSION_NAME} --stacktrace > build.log 2>&1 || status=$?
+          cat build.log
+          if [ "$status" -ne 0 ]; then
+            # 把編譯錯誤與失敗的測試整理成一則註記，GitHub 不開放日誌時也能從 API 讀到原因。
+            msg=$(grep -E '^e: |error:|FAILED|What went wrong' -A3 build.log | head -60)
+            echo "::error title=建置失敗::${msg//$'\n'/%0A}"
+          fi
+          exit $status
 
       - name: 重新命名 APK
         run: cp app/build/outputs/apk/debug/app-debug.apk "slowjog-v${VERSION_NAME}.apk"
