@@ -33,10 +33,17 @@ import com.cornming.slowjog.R
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.settings.MusicMode
 import com.cornming.slowjog.spotify.SpotifyLink
+import com.cornming.slowjog.data.CsvExport
+import com.cornming.slowjog.data.Habit
+import com.cornming.slowjog.data.RecordRepository
 import com.cornming.slowjog.reminder.ReminderScheduler
 import com.cornming.slowjog.sound.CompletionChime
 import com.cornming.slowjog.spotify.SpotifyPlayer
 import com.cornming.slowjog.workout.Distance
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /** 設定分頁：到達目標時的行為與步幅、運動音樂（Spotify 歌單與開始運動時的行為）。目標本身在首頁設定。 */
@@ -103,6 +110,19 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             text = stringResource(R.string.settings_reminder_help, 3),
             style = MaterialTheme.typography.bodySmall,
         )
+
+        Text(text = stringResource(R.string.settings_habit_section), style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = stringResource(R.string.settings_weekly_target, settings.weeklyTargetDays),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Slider(
+            value = settings.weeklyTargetDays.toFloat(),
+            onValueChange = { AppSettings.setWeeklyTargetDays(it.roundToInt()) },
+            valueRange = Habit.MIN_WEEKLY_TARGET.toFloat()..Habit.MAX_WEEKLY_TARGET.toFloat(),
+            steps = Habit.MAX_WEEKLY_TARGET - Habit.MIN_WEEKLY_TARGET - 1,
+        )
+        Text(text = stringResource(R.string.settings_habit_help), style = MaterialTheme.typography.bodySmall)
 
         Text(text = stringResource(R.string.settings_target_section), style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(R.string.settings_target_where), style = MaterialTheme.typography.bodySmall)
@@ -194,6 +214,33 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         testStatus?.let {
             Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         }
+
+        Text(text = stringResource(R.string.settings_data_section), style = MaterialTheme.typography.titleMedium)
+        val scope = androidx.compose.runtime.rememberCoroutineScope()
+        val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv"),
+        ) { uri ->
+            if (uri != null) {
+                scope.launch {
+                    val message = try {
+                        withContext(Dispatchers.IO) {
+                            val csv = CsvExport.build(RecordRepository.observeAll().first())
+                            context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(csv.toByteArray(Charsets.UTF_8)) }
+                                ?: error("無法開啟檔案")
+                        }
+                        context.getString(R.string.settings_export_done)
+                    } catch (e: Exception) {
+                        context.getString(R.string.settings_export_failed, e.message ?: e.javaClass.simpleName)
+                    }
+                    android.widget.Toast.makeText(context.applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { exportLauncher.launch("slowjog-records-${java.time.LocalDate.now()}.csv") },
+        ) { Text(stringResource(R.string.settings_export)) }
+        Text(text = stringResource(R.string.settings_export_help), style = MaterialTheme.typography.bodySmall)
     }
 }
 

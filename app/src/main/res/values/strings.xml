@@ -58,9 +58,19 @@
 
     <string name="widget_description">累計超慢跑時間與連續運動天數</string>
     <string name="widget_total_label">累計超慢跑</string>
+    <string name="widget_score">習慣分數 %1$d%%</string>
     <string name="widget_streak">連續 %1$d 天</string>
     <string name="widget_done_today">今天已完成</string>
     <string name="widget_not_yet">今天還沒運動</string>
+
+    <string name="settings_habit_section">習慣分數與每週目標</string>
+    <string name="settings_weekly_target">每週目標：%1$d 天</string>
+    <string name="settings_habit_help">習慣分數看「最近 7 天運動天數 ÷ 每週目標」，一天一天平滑累積：達到每週目標的休息日不扣分，偶爾漏一天只會小幅下降、不會歸零；但需要幾週才會爬高。目標天數要自己隨計畫調整（不會自動逐週增加）。</string>
+    <string name="settings_data_section">資料</string>
+    <string name="settings_export">匯出運動紀錄（CSV）</string>
+    <string name="settings_export_help">選擇存放位置後，把所有紀錄存成 CSV，欄位：id、date、startedAt、durationSec、jogSec、bpm，可用試算表開啟。</string>
+    <string name="settings_export_done">已匯出運動紀錄</string>
+    <string name="settings_export_failed">匯出失敗：%1$s</string>
 
     <string name="settings_title">設定</string>
     <string name="settings_music_section">運動音樂（Spotify）</string>
@@ -84,6 +94,10 @@
     <string name="stat_total_jog">累計超慢跑</string>
     <string name="stat_total_workout">累計整段運動</string>
     <string name="stat_count">運動次數</string>
+    <string name="stat_week">本週</string>
+    <string name="week_format">%1$d / %2$d 天</string>
+    <string name="stat_score">習慣分數</string>
+    <string name="score_format">%1$d%%</string>
     <string name="days_format">%1$d 天</string>
     <string name="times_format">%1$d 次</string>
 

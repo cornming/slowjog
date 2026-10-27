@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.os.SystemClock
 import com.cornming.slowjog.R
+import com.cornming.slowjog.data.Habit
 import com.cornming.slowjog.data.Stats
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.metronome.MetronomeEngine
@@ -130,7 +131,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.titleLarge,
         )
 
-        SummaryCard(stats)
+        SummaryCard(stats, records, settings.weeklyTargetDays)
 
         GoalCard(bpm = state.bpm)
 
@@ -256,7 +257,11 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SummaryCard(stats: Stats) {
+private fun SummaryCard(stats: Stats, records: List<com.cornming.slowjog.data.WorkoutRecord>, weeklyTarget: Int) {
+    val today = LocalDate.now().toEpochDay()
+    val days = remember(records) { records.map { it.dateEpochDay }.toSet() }
+    val weekCount = Habit.weekCount(days, today)
+    val score = (Habit.score(days, today, weeklyTarget) * 100).roundToInt()
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -270,6 +275,10 @@ private fun SummaryCard(stats: Stats) {
                 StatItem(stringResource(R.string.stat_streak), stringResource(R.string.days_format, stats.streakDays))
                 StatItem(stringResource(R.string.stat_total_jog), formatTotal(stats.totalJogSec))
                 StatItem(stringResource(R.string.stat_count), stringResource(R.string.times_format, stats.count))
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                StatItem(stringResource(R.string.stat_week), stringResource(R.string.week_format, weekCount, weeklyTarget))
+                StatItem(stringResource(R.string.stat_score), stringResource(R.string.score_format, score))
             }
         }
     }

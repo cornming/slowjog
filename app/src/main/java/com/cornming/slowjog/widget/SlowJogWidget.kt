@@ -28,8 +28,10 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.cornming.slowjog.MainActivity
 import com.cornming.slowjog.R
+import com.cornming.slowjog.data.Habit
 import com.cornming.slowjog.data.RecordRepository
 import com.cornming.slowjog.data.Stats
+import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.ui.formatTotal
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -42,8 +44,12 @@ class SlowJogWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         RecordRepository.init(context)
-        val stats = Stats.compute(RecordRepository.observeAll().first(), LocalDate.now())
-        provideContent { WidgetContent(context, stats) }
+        AppSettings.init(context)
+        val records = RecordRepository.observeAll().first()
+        val today = LocalDate.now()
+        val stats = Stats.compute(records, today)
+        val score = (Habit.score(records.map { it.dateEpochDay }.toSet(), today.toEpochDay(), AppSettings.settings.value.weeklyTargetDays) * 100).toInt()
+        provideContent { WidgetContent(context, stats, score) }
     }
 
     companion object {
@@ -58,7 +64,7 @@ class SlowJogWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun WidgetContent(context: Context, stats: Stats) {
+private fun WidgetContent(context: Context, stats: Stats, score: Int) {
     val background = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFF202124))
     val text = ColorProvider(day = Color(0xFF1B1B1B), night = Color(0xFFEDEDED))
     val accent = ColorProvider(day = Color(0xFF2E7D32), night = Color(0xFF81C784))
@@ -84,6 +90,10 @@ private fun WidgetContent(context: Context, stats: Stats) {
         Spacer(modifier = GlanceModifier.height(6.dp))
         Text(
             text = context.getString(R.string.widget_streak, stats.streakDays),
+            style = TextStyle(color = text, fontSize = 14.sp),
+        )
+        Text(
+            text = context.getString(R.string.widget_score, score),
             style = TextStyle(color = text, fontSize = 14.sp),
         )
         Text(

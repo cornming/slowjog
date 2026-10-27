@@ -2,6 +2,7 @@ package com.cornming.slowjog.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.cornming.slowjog.data.Habit
 import com.cornming.slowjog.workout.Distance
 import com.cornming.slowjog.workout.Target
 import com.cornming.slowjog.workout.TargetType
@@ -26,10 +27,12 @@ data class Settings(
     val strideCm: Int = Distance.DEFAULT_STRIDE_CM,
     /** 到目標時間時自動停止音樂與節拍器。 */
     val autoStopAtTarget: Boolean = true,
-    /** 每日運動提醒；預設早上 8:30（起床後的運動時間），可在設定調整。 */
+    /** 每日運動提醒；預設早上 6:30（起床時間），可在設定調整。 */
     val reminderEnabled: Boolean = true,
-    val reminderHour: Int = 8,
+    val reminderHour: Int = 6,
     val reminderMinute: Int = 30,
+    /** 每週目標運動天數，用來算習慣分數。 */
+    val weeklyTargetDays: Int = Habit.DEFAULT_WEEKLY_TARGET,
 ) {
     fun target(): Target = Target(targetType, targetMinutes, targetDistanceM)
 }
@@ -48,6 +51,7 @@ object AppSettings {
     private const val KEY_REMINDER_HOUR = "reminderHour"
     private const val KEY_REMINDER_MINUTE = "reminderMinute"
     private const val KEY_NOTIFICATION_ASKED = "notificationAsked"
+    private const val KEY_WEEKLY_TARGET = "weeklyTargetDays"
 
     private var prefs: SharedPreferences? = null
     private val _settings = MutableStateFlow(Settings())
@@ -69,9 +73,17 @@ object AppSettings {
                 .coerceIn(Distance.MIN_STRIDE_CM, Distance.MAX_STRIDE_CM),
             autoStopAtTarget = p.getBoolean(KEY_AUTO_STOP, true),
             reminderEnabled = p.getBoolean(KEY_REMINDER_ON, true),
-            reminderHour = p.getInt(KEY_REMINDER_HOUR, 8).coerceIn(0, 23),
+            reminderHour = p.getInt(KEY_REMINDER_HOUR, 6).coerceIn(0, 23),
             reminderMinute = p.getInt(KEY_REMINDER_MINUTE, 30).coerceIn(0, 59),
+            weeklyTargetDays = p.getInt(KEY_WEEKLY_TARGET, Habit.DEFAULT_WEEKLY_TARGET)
+                .coerceIn(Habit.MIN_WEEKLY_TARGET, Habit.MAX_WEEKLY_TARGET),
         )
+    }
+
+    fun setWeeklyTargetDays(value: Int) {
+        val clamped = value.coerceIn(Habit.MIN_WEEKLY_TARGET, Habit.MAX_WEEKLY_TARGET)
+        prefs?.edit()?.putInt(KEY_WEEKLY_TARGET, clamped)?.apply()
+        _settings.value = _settings.value.copy(weeklyTargetDays = clamped)
     }
 
     fun setReminderEnabled(value: Boolean) {
