@@ -1,6 +1,7 @@
 package com.cornming.slowjog.widget
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -69,7 +70,7 @@ private fun WidgetContent(context: Context, stats: Stats) {
             .background(background)
             .cornerRadius(16.dp)
             .padding(12.dp)
-            .clickable(actionStartActivity<MainActivity>()),
+            .clickable(actionStartActivity(Intent(context, MainActivity::class.java))),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
