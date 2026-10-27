@@ -46,6 +46,16 @@
     <string name="settings_stride_value">步幅：%1$d 公分</string>
     <string name="settings_stride_help">估算距離用。預設 50 公分只是起始值，不是量出來的。校正方法：在已知距離的路線（例如操場一圈）用超慢跑走完，數一下步數，步幅＝距離 ÷ 步數。</string>
 
+    <string name="reminder_channel_name">每日運動提醒</string>
+    <string name="reminder_title">該運動囉</string>
+    <string name="reminder_text">早晨 30 分鐘運動＋超慢跑，準備好就開始吧。</string>
+    <string name="reminder_text_missed">已經 %1$d 天沒運動了，今天先動一動吧。</string>
+    <string name="reminder_action_start">開始運動</string>
+    <string name="settings_reminder_section">每日提醒</string>
+    <string name="settings_reminder_on">每天提醒我運動</string>
+    <string name="settings_reminder_time">提醒時間：%1$02d:%2$02d（上面拉桿調小時，下面調分鐘）</string>
+    <string name="settings_reminder_help">一天提醒一次；今天已經運動就不會提醒。連續漏掉兩天以上，當天會在原本時間後 %1$d 小時再補提醒一次（那時還沒運動才會響）。提醒用系統的省電鬧鐘，可能晚幾分鐘才響。需要允許通知。</string>
+
     <string name="settings_title">設定</string>
     <string name="settings_music_section">運動音樂（Spotify）</string>
     <string name="settings_playlist_label">Spotify 歌單連結</string>

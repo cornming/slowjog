@@ -67,6 +67,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     var askMusic by remember { mutableStateOf(false) }
     val versionName = remember { com.cornming.slowjog.update.UpdateController.currentVersion(context) }
 
+    val startRequested by StartRequest.pending.collectAsStateWithLifecycle()
+
     val startPreview = rememberWithNotificationPermission { MetronomeController.start(context) }
 
     // 開始運動；需要音樂時開啟 Spotify 的歌單頁（立刻開啟，沒有等待）。
@@ -79,6 +81,23 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 is SpotifyPlayer.Outcome.Failed -> outcome.reason
             }
             android.widget.Toast.makeText(context.applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // 按下「開始運動」，依音樂設定決定直接開始或先詢問。
+    fun onStartClicked() {
+        when {
+            settings.playlistUri == null || settings.musicMode == MusicMode.NEVER -> startWorkout(false)
+            settings.musicMode == MusicMode.ALWAYS -> startWorkout(true)
+            else -> askMusic = true
+        }
+    }
+
+    // 來自提醒通知的「開始運動」。
+    LaunchedEffect(startRequested) {
+        if (startRequested) {
+            StartRequest.clear()
+            onStartClicked()
         }
     }
 
@@ -202,13 +221,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
                     .height(56.dp),
-                onClick = {
-                    when {
-                        settings.playlistUri == null || settings.musicMode == MusicMode.NEVER -> startWorkout(false)
-                        settings.musicMode == MusicMode.ALWAYS -> startWorkout(true)
-                        else -> askMusic = true
-                    }
-                },
+                onClick = { onStartClicked() },
             ) {
                 Text(
                     text = stringResource(R.string.workout_start),

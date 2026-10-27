@@ -33,6 +33,7 @@ import com.cornming.slowjog.R
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.settings.MusicMode
 import com.cornming.slowjog.spotify.SpotifyLink
+import com.cornming.slowjog.reminder.ReminderScheduler
 import com.cornming.slowjog.sound.CompletionChime
 import com.cornming.slowjog.spotify.SpotifyPlayer
 import com.cornming.slowjog.workout.Distance
@@ -59,6 +60,50 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(text = stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
+        Text(text = stringResource(R.string.settings_reminder_section), style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.settings_reminder_on),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Switch(
+                checked = settings.reminderEnabled,
+                onCheckedChange = {
+                    AppSettings.setReminderEnabled(it)
+                    ReminderScheduler.schedule(context)
+                },
+            )
+        }
+        if (settings.reminderEnabled) {
+            Text(
+                text = stringResource(R.string.settings_reminder_time, settings.reminderHour, settings.reminderMinute),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Slider(
+                value = settings.reminderHour.toFloat(),
+                onValueChange = { AppSettings.setReminderTime(it.roundToInt(), settings.reminderMinute) },
+                onValueChangeFinished = { ReminderScheduler.schedule(context) },
+                valueRange = 0f..23f,
+                steps = 22,
+            )
+            Slider(
+                value = settings.reminderMinute.toFloat(),
+                onValueChange = { AppSettings.setReminderTime(settings.reminderHour, (it / 5f).roundToInt() * 5) },
+                onValueChangeFinished = { ReminderScheduler.schedule(context) },
+                valueRange = 0f..55f,
+                steps = 10,
+            )
+        }
+        Text(
+            text = stringResource(R.string.settings_reminder_help, 3),
+            style = MaterialTheme.typography.bodySmall,
+        )
+
         Text(text = stringResource(R.string.settings_target_section), style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(R.string.settings_target_where), style = MaterialTheme.typography.bodySmall)
         Row(

@@ -26,6 +26,10 @@ data class Settings(
     val strideCm: Int = Distance.DEFAULT_STRIDE_CM,
     /** 到目標時間時自動停止音樂與節拍器。 */
     val autoStopAtTarget: Boolean = true,
+    /** 每日運動提醒；預設早上 8:30（起床後的運動時間），可在設定調整。 */
+    val reminderEnabled: Boolean = true,
+    val reminderHour: Int = 8,
+    val reminderMinute: Int = 30,
 ) {
     fun target(): Target = Target(targetType, targetMinutes, targetDistanceM)
 }
@@ -40,6 +44,10 @@ object AppSettings {
     private const val KEY_TARGET_DISTANCE = "targetDistanceM"
     private const val KEY_STRIDE = "strideCm"
     private const val KEY_AUTO_STOP = "autoStopAtTarget"
+    private const val KEY_REMINDER_ON = "reminderEnabled"
+    private const val KEY_REMINDER_HOUR = "reminderHour"
+    private const val KEY_REMINDER_MINUTE = "reminderMinute"
+    private const val KEY_NOTIFICATION_ASKED = "notificationAsked"
 
     private var prefs: SharedPreferences? = null
     private val _settings = MutableStateFlow(Settings())
@@ -60,7 +68,29 @@ object AppSettings {
             strideCm = p.getInt(KEY_STRIDE, Distance.DEFAULT_STRIDE_CM)
                 .coerceIn(Distance.MIN_STRIDE_CM, Distance.MAX_STRIDE_CM),
             autoStopAtTarget = p.getBoolean(KEY_AUTO_STOP, true),
+            reminderEnabled = p.getBoolean(KEY_REMINDER_ON, true),
+            reminderHour = p.getInt(KEY_REMINDER_HOUR, 8).coerceIn(0, 23),
+            reminderMinute = p.getInt(KEY_REMINDER_MINUTE, 30).coerceIn(0, 59),
         )
+    }
+
+    fun setReminderEnabled(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_REMINDER_ON, value)?.apply()
+        _settings.value = _settings.value.copy(reminderEnabled = value)
+    }
+
+    fun setReminderTime(hour: Int, minute: Int) {
+        val h = hour.coerceIn(0, 23)
+        val m = minute.coerceIn(0, 59)
+        prefs?.edit()?.putInt(KEY_REMINDER_HOUR, h)?.putInt(KEY_REMINDER_MINUTE, m)?.apply()
+        _settings.value = _settings.value.copy(reminderHour = h, reminderMinute = m)
+    }
+
+    /** 第一次啟動時只主動詢問一次通知權限，之後不再自動跳出。 */
+    fun notificationAsked(): Boolean = prefs?.getBoolean(KEY_NOTIFICATION_ASKED, false) ?: true
+
+    fun markNotificationAsked() {
+        prefs?.edit()?.putBoolean(KEY_NOTIFICATION_ASKED, true)?.apply()
     }
 
     fun setPlaylistUri(value: String?) {
