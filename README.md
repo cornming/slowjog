@@ -36,6 +36,8 @@ APK 會產生在 `app/build/outputs/apk/debug/`。
 
 ## 專案結構
 
+`mascot/` 放小人物的影格表與轉檔工具，詳見 [mascot/README.md](mascot/README.md)。
+
 ```
 app/src/main/java/com/cornming/slowjog/
 ├── MainActivity.kt
@@ -56,5 +58,5 @@ app/src/main/java/com/cornming/slowjog/
 3. 整段運動與超慢跑階段分別計時、運動紀錄
 4. 每日運動提醒（通知上有「開始運動」按鈕、連續漏兩天補提醒）
 5. 桌面小工具：累計超慢跑時間與連續天數
-6. 小人物動畫與鼓勵氣泡
+6. 小人物動畫與鼓勵氣泡（已選方案 A：預先算圖的多角度影格，素材在 `mascot/`）
 7. 第二版：階段式課表與提示、習慣分數與每週目標、節拍音色、語音播報、匯出 CSV

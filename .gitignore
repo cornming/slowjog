@@ -10,3 +10,4 @@
 .cxx/
 *.apk
 *.aab
+mascot/node_modules/
