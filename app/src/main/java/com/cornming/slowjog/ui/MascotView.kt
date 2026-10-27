@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -40,6 +42,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.cornming.slowjog.mascot.MascotLogic
 import com.cornming.slowjog.mascot.MascotSheets
+import com.cornming.slowjog.mascot.MoveSchedule
+import com.cornming.slowjog.plan.StageKind
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -55,6 +59,10 @@ fun MascotView(
     beat: Long,
     flashAlpha: Float,
     modifier: Modifier = Modifier,
+    /** 暖身或伸展階段且沒在跑時，示範動作用的階段資訊；為 null 就是一般的跑步／站立模式。 */
+    moveStage: MoveStage? = null,
+    /** 運動是否進行中（暫停時動作定格）。 */
+    running: Boolean = true,
 ) {
     val context = LocalContext.current
     val sheets = remember { MascotSheets(context) }
@@ -62,6 +70,9 @@ fun MascotView(
     val currentBpm by rememberUpdatedState(bpm)
     val currentBeat by rememberUpdatedState(beat)
     val currentFlash by rememberUpdatedState(flashAlpha)
+    val currentMoveStage by rememberUpdatedState(moveStage)
+    val currentRunning by rememberUpdatedState(running)
+    val moveStageChangedAt = remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
     var manualOffset by remember { mutableIntStateOf(0) }
     var angle by remember { mutableIntStateOf(0) }
@@ -82,6 +93,26 @@ fun MascotView(
         while (true) {
             withFrameMillis { frameClock.longValue = it }
         }
+    }
+
+    // 動作時間每 0.2 秒才更新一次，記下更新的時刻，畫面才能在兩次更新之間走得順。
+    LaunchedEffect(moveStage?.elapsedMs) { moveStageChangedAt.longValue = SystemClock.elapsedRealtime() }
+
+    // 暖身與伸展：先載入目前與下一個動作的影格表，用不到的就釋放。
+    val moveNow = moveStage?.let { MoveSchedule.at(it.kind, it.stageMs, it.elapsedMs) }
+    LaunchedEffect(moveNow?.move) {
+        val current = moveNow?.move
+        if (current == null) {
+            sheets.keepOnlyMoves(emptySet())
+        } else {
+            sheets.ensureMoves(listOfNotNull(current, moveNow.next))
+            sheets.keepOnlyMoves(setOfNotNull(current, moveNow.next))
+        }
+    }
+    // 換動作時冒出氣泡提醒要領。
+    LaunchedEffect(moveNow?.move, moveNow?.index) {
+        val m = moveNow?.move ?: return@LaunchedEffect
+        bubble = "${m.nameZh}：${m.tip}"
     }
 
     // 每一拍記下時間，影格依它對齊腳落地的瞬間。
@@ -153,6 +184,27 @@ fun MascotView(
             )
 
             if (!ready) return@Canvas
+            val ms = currentMoveStage
+            if (ms != null) {
+                val extra = if (currentRunning) (SystemClock.elapsedRealtime() - moveStageChangedAt.longValue).coerceIn(0L, 250L) else 0L
+                val slot = MoveSchedule.at(ms.kind, ms.stageMs, ms.elapsedMs + extra)
+                val moveSheet = slot?.let { sheets.getMove(it.move) }
+                if (slot != null && moveSheet != null) {
+                    val pos = slot.phase * MascotMoveFrames
+                    val i = pos.toInt().coerceIn(0, MascotMoveFrames - 1)
+                    val frac = pos - i
+                    scale(
+                        scaleX = if (slot.mirrored) -1f else 1f,
+                        scaleY = 1f,
+                        pivot = center,
+                    ) {
+                        drawFrame(moveSheet, i, 1f)
+                        // 相鄰兩格疊在一起淡入，慢動作才不會一格一格跳。
+                        if (frac > 0.02f) drawFrame(moveSheet, (i + 1) % MascotMoveFrames, frac)
+                    }
+                }
+                return@Canvas
+            }
             val sheet = sheets.get(MascotLogic.sheetAngle(angle)) ?: return@Canvas
             val frame = if (currentJogging) {
                 val since = SystemClock.elapsedRealtime() - lastBeatAt.longValue
@@ -160,20 +212,12 @@ fun MascotView(
             } else {
                 0
             }
-            val col = frame % MascotSheets.COLUMNS
-            val row = frame / MascotSheets.COLUMNS
             scale(
                 scaleX = if (MascotLogic.isMirrored(angle)) -1f else 1f,
                 scaleY = 1f,
                 pivot = center,
             ) {
-                drawImage(
-                    image = sheet,
-                    srcOffset = IntOffset(col * MascotSheets.FRAME_WIDTH, row * MascotSheets.FRAME_HEIGHT),
-                    srcSize = IntSize(MascotSheets.FRAME_WIDTH, MascotSheets.FRAME_HEIGHT),
-                    dstSize = IntSize(size.width.toInt(), size.height.toInt()),
-                    filterQuality = FilterQuality.Medium,
-                )
+                drawFrame(sheet, frame, 1f)
             }
         }
 
@@ -198,4 +242,23 @@ fun MascotView(
             }
         }
     }
+}
+
+/** 暖身與伸展影格表一個循環的格數。 */
+private const val MascotMoveFrames = 12
+
+/** 目前階段（暖身或伸展）與階段內已過的時間，讓小人物示範動作。 */
+data class MoveStage(val kind: StageKind, val stageMs: Long, val elapsedMs: Long)
+
+private fun DrawScope.drawFrame(sheet: ImageBitmap, frame: Int, alpha: Float) {
+    val col = frame % MascotSheets.COLUMNS
+    val row = frame / MascotSheets.COLUMNS
+    drawImage(
+        image = sheet,
+        srcOffset = IntOffset(col * MascotSheets.FRAME_WIDTH, row * MascotSheets.FRAME_HEIGHT),
+        srcSize = IntSize(MascotSheets.FRAME_WIDTH, MascotSheets.FRAME_HEIGHT),
+        dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+        alpha = alpha,
+        filterQuality = FilterQuality.Medium,
+    )
 }

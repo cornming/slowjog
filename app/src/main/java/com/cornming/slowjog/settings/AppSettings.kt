@@ -36,7 +36,7 @@ data class Settings(
     /** 每週目標運動天數，用來算習慣分數。 */
     val weeklyTargetDays: Int = Habit.DEFAULT_WEEKLY_TARGET,
     val metronomeSound: ClickSound = ClickSound.CLICK,
-    /** 階段式課表：暖身、超慢跑、肌力、收操各幾分鐘（0 代表略過該階段）。 */
+    /** 階段式課表：暖身、超慢跑、肌力、伸展各幾分鐘（0 代表略過該階段）。 */
     val planEnabled: Boolean = true,
     val planWarmupMin: Int = WorkoutPlan.DEFAULT_WARMUP,
     val planJogMin: Int = WorkoutPlan.DEFAULT_JOG,

@@ -12,11 +12,15 @@ const FW = 384, FH = 480, COLS = 6, ROWS = 2;
 (async () => {
   const three = fs.readFileSync(path.join(__dirname, 'node_modules/three/build/three.min.js'), 'utf8');
   const rig = fs.readFileSync(path.join(__dirname, 'rig.js'), 'utf8');
+  const moves = fs.readFileSync(path.join(__dirname, 'moves.js'), 'utf8');
+  const OUT = process.env.OUT || path.join(__dirname, '..', 'app', 'src', 'main', 'res', 'drawable-nodpi');
+  const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null; // 例如 ONLY=move 或 ONLY=run
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage();
   await page.setContent('<canvas id="c" width="' + FW + '" height="' + FH + '"></canvas><canvas id="sheet" width="' + FW * COLS + '" height="' + FH * ROWS + '"></canvas>');
   await page.addScriptTag({ content: three });
   await page.addScriptTag({ content: rig });
+  await page.addScriptTag({ content: moves });
   await page.evaluate(({ FW, FH }) => {
     const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setClearColor(0x000000, 0);
@@ -53,12 +57,40 @@ const FW = 384, FH = 480, COLS = 6, ROWS = 2;
       }
       return sheet.toDataURL('image/png');
     };
+    // 暖身與伸展：每個動作一張，視角固定。
+    window.renderMove = (id, frames, cols) => {
+      const move = MOVES[id];
+      const sheet = document.getElementById('sheet');
+      const ctx = sheet.getContext('2d');
+      ctx.clearRect(0, 0, sheet.width, sheet.height);
+      const az = move.angle * Math.PI / 180;
+      camera.position.set(11.5 * Math.sin(az), 2.2, 11.5 * Math.cos(az));
+      camera.lookAt(0, 1.5, 0);
+      for (let k = 0; k < frames; k++) {
+        applyPose(mascot, move.pose(k / frames));
+        groundFigure(mascot);
+        renderer.render(scene, camera);
+        ctx.drawImage(renderer.domElement, (k % cols) * FW, Math.floor(k / cols) * FH);
+      }
+      return sheet.toDataURL('image/png');
+    };
   }, { FW, FH });
-  for (const deg of ANGLES) {
-    const url = await page.evaluate(([d, f, c]) => window.renderSheet(d, f, c), [deg, FRAMES, COLS]);
-    const file = path.join(__dirname, '..', 'app', 'src', 'main', 'res', 'drawable-nodpi', 'mascot_v' + String(deg).padStart(3, '0') + '.png');
-    fs.writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
-    console.log('wrote', path.relative(process.cwd(), file));
+  if (!ONLY || ONLY.includes('run')) {
+    for (const deg of ANGLES) {
+      const url = await page.evaluate(([d, f, c]) => window.renderSheet(d, f, c), [deg, FRAMES, COLS]);
+      const file = path.join(OUT, 'mascot_v' + String(deg).padStart(3, '0') + '.png');
+      fs.writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
+      console.log('wrote', file);
+    }
+  }
+  if (!ONLY || ONLY.includes('move')) {
+    const ids = await page.evaluate(() => Object.keys(MOVES));
+    for (const id of ids) {
+      const url = await page.evaluate(([i, f, c]) => window.renderMove(i, f, c), [id, FRAMES, COLS]);
+      const file = path.join(OUT, 'mascot_m_' + id + '.png');
+      fs.writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
+      console.log('wrote', file);
+    }
   }
   await browser.close();
 })();

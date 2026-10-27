@@ -1,6 +1,6 @@
 package com.cornming.slowjog.plan
 
-/** 課表的階段種類；提示音的次數 ＝ 順序 + 1（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、收操 4 聲）。 */
+/** 課表的階段種類；提示音的次數 ＝ 順序 + 1（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、伸展 4 聲）。COOLDOWN 就是運動後的伸展收操。 */
 enum class StageKind {
     WARMUP, JOG, STRENGTH, COOLDOWN;
 
@@ -13,7 +13,7 @@ data class Stage(val kind: StageKind, val minutes: Int)
 data class PlanPosition(val index: Int, val stage: Stage?, val remainingMs: Long)
 
 /**
- * 運動課表：由階段依序組成（預設暖身 5、超慢跑 15、肌力 6、收操 4 分鐘，共 30 分鐘）。
+ * 運動課表：由階段依序組成（預設暖身 5、超慢跑 15、肌力 6、伸展 4 分鐘，共 30 分鐘）。
  * 時間以「整段運動已過時間」計算，暫停時不走。0 分鐘的階段會被略過。
  */
 class WorkoutPlan(stages: List<Stage>) {

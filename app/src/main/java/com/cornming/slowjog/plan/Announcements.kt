@@ -1,5 +1,7 @@
 package com.cornming.slowjog.plan
 
+import com.cornming.slowjog.mascot.Move
+
 /** 語音播報與畫面上的文字。 */
 object Announcements {
 
@@ -10,10 +12,13 @@ object Announcements {
         StageKind.WARMUP -> "暖身"
         StageKind.JOG -> "超慢跑"
         StageKind.STRENGTH -> "肌力訓練"
-        StageKind.COOLDOWN -> "收操"
+        StageKind.COOLDOWN -> "伸展"
     }
 
     fun stageStart(stage: Stage): String = "${stageName(stage.kind)}開始，${stage.minutes} 分鐘"
+
+    /** 暖身與伸展換到下一個動作時念的話：動作名稱加一句要領。 */
+    fun moveStart(move: Move): String = "${move.nameZh}。${move.tip}"
 
     const val PLAN_DONE = "課表完成"
 

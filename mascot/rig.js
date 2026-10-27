@@ -130,11 +130,15 @@ function buildMascot() {
     const shin = capsule(0.1, 0.3, skin);
     shin.position.y = -0.25;
     knee.add(shin);
-    const foot = mesh(new THREE.SphereGeometry(0.13, 16, 12), shoe, 0, -0.5, 0.08);
+    // 腳踝：伸展動作需要讓腳掌保持貼地，所以腳掌放在自己的轉軸上（預設不轉，外觀不變）
+    const ankle = new THREE.Group();
+    ankle.position.y = -0.5;
+    knee.add(ankle);
+    const foot = mesh(new THREE.SphereGeometry(0.13, 16, 12), shoe, 0, 0, 0.08);
     foot.scale.set(1, 0.75, 1.7);
-    knee.add(foot);
+    ankle.add(foot);
     figure.add(hip);
-    return { hip, knee };
+    return { hip, knee, ankle };
   };
 
   // 頭：大頭 Q 版比例，臉朝 +z
@@ -170,18 +174,43 @@ function buildMascot() {
   return { root, figure, torso, head, tuft, arms, legs, headBaseY: 2.38 };
 }
 
+/**
+ * 套用姿勢。除了跑步用的欄位，還支援暖身與伸展用的選填欄位（沒填就是 0）：
+ * upperLz / upperRz（手臂往外張開，左臂為正、右臂為負）、upperLy / upperRy（手臂左右轉向）、
+ * thighLz / thighRz（腿往外張開）、ankleL / ankleR（腳踝）、
+ * lean（上身以髖為軸前傾）、side（上身側彎）、headTilt、headTwist、tilt（整個人前傾，預設 0.05）、dz（整個人前後平移）。
+ */
 function applyPose(rig, ps) {
-  rig.legs.L.hip.rotation.x = ps.thighL;
-  rig.legs.R.hip.rotation.x = ps.thighR;
+  const v = (name) => ps[name] || 0;
+  rig.legs.L.hip.rotation.order = 'YXZ';
+  rig.legs.R.hip.rotation.order = 'YXZ';
+  rig.arms.L.shoulder.rotation.order = 'YXZ';
+  rig.arms.R.shoulder.rotation.order = 'YXZ';
+  rig.legs.L.hip.rotation.set(ps.thighL, 0, v('thighLz'));
+  rig.legs.R.hip.rotation.set(ps.thighR, 0, v('thighRz'));
   rig.legs.L.knee.rotation.x = ps.shinL;
   rig.legs.R.knee.rotation.x = ps.shinR;
-  rig.arms.L.shoulder.rotation.x = ps.upperL;
-  rig.arms.R.shoulder.rotation.x = ps.upperR;
+  rig.legs.L.ankle.rotation.x = v('ankleL');
+  rig.legs.R.ankle.rotation.x = v('ankleR');
+  rig.arms.L.shoulder.rotation.set(ps.upperL, v('upperLy'), v('upperLz'));
+  rig.arms.R.shoulder.rotation.set(ps.upperR, v('upperRy'), v('upperRz'));
   rig.arms.L.elbow.rotation.x = ps.foreL;
   rig.arms.R.elbow.rotation.x = ps.foreR;
   rig.figure.position.y = ps.bob;
-  rig.torso.rotation.y = ps.twist;
-  rig.head.position.y = rig.headBaseY + ps.headBob;
+  rig.figure.position.z = v('dz'); // 整個人前後平移（前彎時把重心拉回畫面中央）
+  rig.figure.rotation.x = ps.tilt !== undefined ? ps.tilt : 0.05;
+
+  // 上身以髖（高度 1.12）為軸前傾或側彎，頭與上身一起動；沒有前傾與側彎時位置和原本完全相同。
+  const lean = v('lean');
+  const side = v('side');
+  const euler = new THREE.Euler(lean, 0, side, 'XZY');
+  const torsoPos = new THREE.Vector3(0, 0.3, 0).applyEuler(euler);
+  rig.torso.position.set(torsoPos.x, 1.12 + torsoPos.y, torsoPos.z);
+  rig.torso.rotation.order = 'XZY'; // 先轉身、再側彎、最後前傾，轉體時才會繞著自己的軸
+  rig.torso.rotation.set(lean, ps.twist, side);
+  const headPos = new THREE.Vector3(0, rig.headBaseY - 1.12 + ps.headBob, 0).applyEuler(euler);
+  rig.head.position.set(headPos.x, 1.12 + headPos.y, headPos.z);
+  rig.head.rotation.set(lean + v('headTilt'), v('headTwist'), side);
   rig.tuft.rotation.z = ps.tuft;
 }
 

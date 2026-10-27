@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cornming.slowjog.R
+import com.cornming.slowjog.mascot.MoveSchedule
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.plan.Announcements
 import com.cornming.slowjog.workout.TargetTime
@@ -51,6 +52,19 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
     val target = WorkoutController.target()
     val meters = WorkoutController.estimatedMeters(now)
+
+    // 暖身與伸展階段、而且沒在超慢跑：小人物示範動作。
+    val elapsedMs = WorkoutController.elapsedMs(now)
+    val plan = WorkoutController.plan()
+    val planPosition = plan?.position(elapsedMs)
+    val planStage = planPosition?.stage
+    val moveStage = if (planStage != null && planPosition != null && !workout.jogging && MoveSchedule.movesFor(planStage.kind).isNotEmpty()) {
+        val stageMs = planStage.minutes * 60_000L
+        MoveStage(planStage.kind, stageMs, stageMs - planPosition.remainingMs)
+    } else {
+        null
+    }
+    val moveSlot = moveStage?.let { MoveSchedule.at(it.kind, it.stageMs, it.elapsedMs) }
 
     KeepScreenOn(enabled = true)
 
@@ -110,10 +124,9 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
             }
             Text(text = line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         }
-        val plan = WorkoutController.plan()
-        if (plan != null) {
-            val position = plan.position(elapsed * 1000L)
-            val stage = position.stage
+        if (plan != null && planPosition != null) {
+            val position = planPosition
+            val stage = planStage
             if (stage != null) {
                 Text(
                     text = stringResource(
@@ -153,11 +166,24 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
             bpm = metronome.bpm,
             beat = metronome.beat,
             flashAlpha = flash.value,
+            moveStage = moveStage,
+            running = workout.running,
         )
-        Text(
-            text = stringResource(R.string.mascot_hint),
-            style = MaterialTheme.typography.bodySmall,
-        )
+        if (moveSlot != null) {
+            Text(
+                text = stringResource(R.string.workout_move, moveSlot.index + 1, moveSlot.count, moveSlot.move.nameZh),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(text = moveSlot.move.tip, style = MaterialTheme.typography.bodyMedium)
+            moveSlot.next?.let {
+                Text(text = stringResource(R.string.workout_move_next, it.nameZh), style = MaterialTheme.typography.bodySmall)
+            }
+        } else {
+            Text(
+                text = stringResource(R.string.mascot_hint),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,

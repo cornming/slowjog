@@ -9,6 +9,7 @@ import com.cornming.slowjog.music.MusicControl
 import com.cornming.slowjog.plan.Announcements
 import com.cornming.slowjog.plan.StageCue
 import com.cornming.slowjog.plan.WorkoutPlan
+import com.cornming.slowjog.mascot.MoveSchedule
 import com.cornming.slowjog.voice.VoiceAnnouncer
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.sound.CompletionChime
@@ -57,6 +58,7 @@ object WorkoutController {
     private var cues = true
     private var voice = true
     private var lastStageIndex = -1
+    private var lastMoveKey = -1
     private var lastElapsedAnnounced = -1
     private var targetReached = false
     private var targetPrompt = false
@@ -116,6 +118,7 @@ object WorkoutController {
         cues = settings.cuesEnabled
         voice = settings.voiceEnabled
         lastStageIndex = -1
+        lastMoveKey = -1
         lastElapsedAnnounced = -1
         targetReached = false
         targetPrompt = false
@@ -139,6 +142,7 @@ object WorkoutController {
                     val elapsedMs = timer.elapsedMs(now)
                     if (timer.running) {
                         checkStage(app, elapsedMs)
+                        checkMove(app, elapsedMs)
                         checkElapsedVoice(app, elapsedMs)
                     }
                     if (target.enabled && !targetReached &&
@@ -167,6 +171,23 @@ object WorkoutController {
             if (!target.enabled && cues) CompletionChime.play()
             if (voice) VoiceAnnouncer.speak(app, Announcements.PLAN_DONE)
         }
+    }
+
+    /**
+     * 暖身與伸展階段換到下一個動作時，用語音念動作名稱與要領（小人物同時在畫面上示範）。
+     * 已經按了「開始超慢跑」就不念，因為這時在跑，不是在做動作。
+     */
+    private fun checkMove(app: Context, elapsedMs: Long) {
+        if (!voice) return
+        val p = plan ?: return
+        val position = p.position(elapsedMs)
+        val stage = position.stage ?: return
+        val slot = MoveSchedule.at(stage, stage.minutes * 60_000L - position.remainingMs) ?: return
+        val key = position.index * 100 + slot.index
+        if (key == lastMoveKey) return
+        lastMoveKey = key
+        if (timer.jogging) return
+        VoiceAnnouncer.speak(app, Announcements.moveStart(slot.move))
     }
 
     /** 每 5 分鐘念一次經過時間；剛好在階段交界附近就略過，因為階段播報已經說了。 */
@@ -301,6 +322,9 @@ object WorkoutController {
             }
         }
     }
+
+    @Synchronized
+    fun elapsedMs(now: Long): Long = timer.elapsedMs(now)
 
     @Synchronized
     fun elapsedSec(now: Long): Int = (timer.elapsedMs(now) / 1000).toInt()

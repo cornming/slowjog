@@ -16,7 +16,7 @@ object Tones {
     private const val BEEP_MS = 130
     private const val GAP_MS = 110
 
-    /** [count] 聲短「嗶」，次數代表階段（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、收操 4 聲）。 */
+    /** [count] 聲短「嗶」，次數代表階段（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、伸展 4 聲）。 */
     fun beeps(count: Int): ShortArray {
         val n = count.coerceIn(1, 8)
         val beepFrames = SAMPLE_RATE * BEEP_MS / 1000

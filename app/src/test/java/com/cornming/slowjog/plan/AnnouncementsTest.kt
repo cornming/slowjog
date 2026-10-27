@@ -1,5 +1,6 @@
 package com.cornming.slowjog.plan
 
+import com.cornming.slowjog.mascot.Move
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,6 +12,17 @@ class AnnouncementsTest {
     fun stageStartText() {
         assertEquals("暖身開始，5 分鐘", Announcements.stageStart(Stage(StageKind.WARMUP, 5)))
         assertEquals("超慢跑開始，15 分鐘", Announcements.stageStart(Stage(StageKind.JOG, 15)))
+    }
+
+    @Test
+    fun stretchStageIsCalledStretch() {
+        assertEquals("伸展", Announcements.stageName(StageKind.COOLDOWN))
+        assertEquals("伸展開始，4 分鐘", Announcements.stageStart(Stage(StageKind.COOLDOWN, 4)))
+    }
+
+    @Test
+    fun moveStartSaysNameAndTip() {
+        assertEquals("抬膝踏步。${Move.MARCH.tip}", Announcements.moveStart(Move.MARCH))
     }
 
     @Test
