@@ -8,9 +8,42 @@
     <string name="tap_tempo">點拍子定速</string>
     <string name="tap_tempo_hint">跟著你的腳步連續點幾下，會自動換算成 BPM</string>
     <string name="volume">節拍音量</string>
-    <string name="start">開始</string>
-    <string name="stop">停止</string>
     <string name="version_format">版本 %1$s</string>
+
+    <string name="tab_home">首頁</string>
+    <string name="tab_history">紀錄</string>
+
+    <string name="today_done">今天已完成運動</string>
+    <string name="today_not_yet">今天還沒運動</string>
+    <string name="stat_streak">連續天數</string>
+    <string name="stat_total_jog">累計超慢跑</string>
+    <string name="stat_total_workout">累計整段運動</string>
+    <string name="stat_count">運動次數</string>
+    <string name="days_format">%1$d 天</string>
+    <string name="times_format">%1$d 次</string>
+
+    <string name="preview_start">試聽節拍</string>
+    <string name="preview_stop">停止試聽</string>
+    <string name="workout_start">開始運動</string>
+
+    <string name="workout_ongoing">運動中</string>
+    <string name="workout_jogging">超慢跑中</string>
+    <string name="workout_paused">已暫停</string>
+    <string name="workout_total_time">整段運動</string>
+    <string name="workout_jog_time">超慢跑</string>
+    <string name="jog_start">開始超慢跑</string>
+    <string name="jog_end">結束超慢跑</string>
+    <string name="workout_pause">暫停</string>
+    <string name="workout_resume">繼續</string>
+    <string name="workout_finish">結束運動</string>
+    <string name="finish_title">結束這次運動？</string>
+    <string name="finish_summary">整段 %1$s，超慢跑 %2$s</string>
+    <string name="finish_save">儲存並結束</string>
+    <string name="finish_continue">繼續運動</string>
+    <string name="finish_discard">放棄這次，不儲存</string>
+
+    <string name="history_title">運動紀錄</string>
+    <string name="history_empty">還沒有紀錄，完成第一次運動後會出現在這裡。</string>
 
     <string name="update_check">檢查更新</string>
     <string name="update_checking">檢查更新中…</string>

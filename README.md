@@ -4,6 +4,7 @@
 
 ## 目前功能（第一版）
 
+- **運動計時與紀錄**：按「開始運動」進入運動中畫面，整段運動與超慢跑階段分別計時；按「開始超慢跑」才啟動節拍器，結束超慢跑節拍器就停。可暫停、繼續，結束時選擇儲存或放棄。紀錄存在本機，「紀錄」分頁可查看每次的日期、整段與超慢跑時長、BPM，以及累計時間與連續天數。
 - **節拍器**：BPM 可調（40 到 240，預設 180，對應超慢跑建議的每分鐘 180 步）。
 - **點拍子定速**：跟著腳步連續點幾下，自動換算成 BPM。
 - **節拍視覺閃動**：每一拍畫面亮一下，環境吵或音量小時也能對拍。
@@ -47,12 +48,21 @@ app/src/main/java/com/cornming/slowjog/
 │   ├── MetronomeService.kt     # 前景服務與通知
 │   ├── MetronomeController.kt  # 畫面與引擎之間的單一入口與狀態
 │   └── TapTempo.kt             # 點拍子換算 BPM（純 Kotlin，有單元測試）
+├── workout/
+│   ├── WorkoutTimer.kt         # 整段與超慢跑計時（純 Kotlin，有單元測試）
+│   └── WorkoutController.kt    # 一次運動的入口：開始、暫停、結束、寫入紀錄
+├── data/
+│   ├── WorkoutRecord.kt        # 運動紀錄（Room）
+│   ├── AppDatabase.kt          # 資料庫與 RecordRepository
+│   └── Stats.kt                # 累計與連續天數（有單元測試）
 ├── update/
 │   ├── UpdateController.kt     # 檢查 GitHub 最新版、下載 APK、交給系統安裝
 │   ├── ReleaseInfo.kt          # 解析 Release 資訊（有單元測試）
 │   └── Versions.kt             # 版本號比較（有單元測試）
 └── ui/
-    ├── HomeScreen.kt
+    ├── HomeScreen.kt           # 首頁：今天狀態、BPM、開始運動
+    ├── WorkoutScreen.kt        # 運動中畫面
+    ├── HistoryScreen.kt        # 紀錄分頁
     └── SlowJogTheme.kt
 ```
 
@@ -60,7 +70,7 @@ app/src/main/java/com/cornming/slowjog/
 
 1. 專案與發佈流程（完成）
 2. 節拍器（完成）
-3. 整段運動與超慢跑階段分別計時、運動紀錄
+3. 整段運動與超慢跑階段分別計時、運動紀錄（完成，進行中的這次運動只存在記憶體，App 被系統結束就不會保留）
 4. 每日運動提醒（通知上有「開始運動」按鈕、連續漏兩天補提醒）
 5. 桌面小工具：累計超慢跑時間與連續天數
 6. 小人物動畫與鼓勵氣泡（已選方案 A：預先算圖的多角度影格，素材在 `mascot/`）

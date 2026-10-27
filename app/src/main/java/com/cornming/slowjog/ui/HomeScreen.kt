@@ -1,11 +1,5 @@
 package com.cornming.slowjog.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.SystemClock
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -18,15 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -35,48 +31,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.os.SystemClock
 import com.cornming.slowjog.R
+import com.cornming.slowjog.data.Stats
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.metronome.MetronomeEngine
 import com.cornming.slowjog.metronome.TapTempo
+import com.cornming.slowjog.workout.WorkoutController
+import java.time.LocalDate
 import kotlin.math.roundToInt
 
+/** 首頁：今天的狀態與累計、BPM 設定、試聽節拍、開始運動。 */
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val state by MetronomeController.state.collectAsStateWithLifecycle()
+    val records by rememberRecords()
+    val stats = remember(records) { Stats.compute(records, LocalDate.now()) }
     val tapTempo = remember { TapTempo() }
-    val versionName = remember {
-        runCatching {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        }.getOrNull().orEmpty()
-    }
+    val versionName = remember { com.cornming.slowjog.update.UpdateController.currentVersion(context) }
 
-    // Android 13 以上要先取得通知權限；不論使用者同意與否都照樣開始，
-    // 沒有權限時只是看不到通知，節拍器仍會運作。
-    val notificationPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { MetronomeController.start(context) }
+    val startPreview = rememberWithNotificationPermission { MetronomeController.start(context) }
 
-    fun startMetronome() {
-        val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        if (needsPermission) {
-            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            MetronomeController.start(context)
-        }
-    }
-
-    // 運動中保持螢幕恆亮，離開畫面或停止後恢復系統設定。
+    // 試聽節拍時保持螢幕恆亮，停止後恢復系統設定。
     KeepScreenOn(enabled = state.running)
 
     // 每一拍讓圓形閃一下。
@@ -94,43 +76,44 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .systemBarsPadding()
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = stringResource(R.string.home_title),
             style = MaterialTheme.typography.titleLarge,
         )
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // 節拍視覺閃動：圓形在每一拍亮起再淡出，環境吵或音量小時也能對拍。
-            Box(
-                modifier = Modifier
-                    .size(220.dp)
-                    .clip(CircleShape)
-                    .background(baseColor)
-                    .drawBehind { drawRect(flashColor.copy(alpha = flash.value * 0.6f)) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = state.bpm.toString(),
-                        fontSize = 64.sp,
-                        style = MaterialTheme.typography.displayMedium,
-                    )
-                    Text(
-                        text = stringResource(R.string.bpm_unit),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-            }
+        SummaryCard(stats)
 
+        // 節拍視覺閃動：圓形在每一拍亮起再淡出，環境吵或音量小時也能對拍。
+        Box(
+            modifier = Modifier
+                .size(180.dp)
+                .clip(CircleShape)
+                .background(baseColor)
+                .drawBehind { drawRect(flashColor.copy(alpha = flash.value * 0.6f)) },
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = state.bpm.toString(),
+                    fontSize = 56.sp,
+                    style = MaterialTheme.typography.displayMedium,
+                )
+                Text(
+                    text = stringResource(R.string.bpm_unit),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -168,7 +151,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             Text(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 24.dp),
+                    .padding(top = 16.dp),
                 text = stringResource(R.string.volume),
                 style = MaterialTheme.typography.labelLarge,
             )
@@ -180,16 +163,23 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    if (state.running) MetronomeController.stop(context) else startPreview()
+                },
+            ) {
+                Text(stringResource(if (state.running) R.string.preview_stop else R.string.preview_start))
+            }
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = 8.dp)
                     .height(56.dp),
-                onClick = {
-                    if (state.running) MetronomeController.stop(context) else startMetronome()
-                },
+                onClick = { WorkoutController.start(context) },
             ) {
                 Text(
-                    text = stringResource(if (state.running) R.string.stop else R.string.start),
+                    text = stringResource(R.string.workout_start),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
@@ -199,10 +189,29 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun KeepScreenOn(enabled: Boolean) {
-    val view = LocalView.current
-    DisposableEffect(enabled) {
-        view.keepScreenOn = enabled
-        onDispose { view.keepScreenOn = false }
+private fun SummaryCard(stats: Stats) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(if (stats.doneToday) R.string.today_done else R.string.today_not_yet),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                StatItem(stringResource(R.string.stat_streak), stringResource(R.string.days_format, stats.streakDays))
+                StatItem(stringResource(R.string.stat_total_jog), formatTotal(stats.totalJogSec))
+                StatItem(stringResource(R.string.stat_count), stringResource(R.string.times_format, stats.count))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun StatItem(label: String, value: String) {
+    Column {
+        Text(text = label, style = MaterialTheme.typography.bodySmall)
+        Text(text = value, style = MaterialTheme.typography.titleSmall)
     }
 }
