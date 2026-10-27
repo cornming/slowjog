@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +60,37 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(text = stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
+        Text(text = stringResource(R.string.settings_target_section), style = MaterialTheme.typography.titleMedium)
+        Column {
+            Text(
+                text = if (settings.targetMinutes > 0) {
+                    stringResource(R.string.settings_target_value, settings.targetMinutes)
+                } else {
+                    stringResource(R.string.settings_target_off)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Slider(
+                value = settings.targetMinutes.toFloat(),
+                onValueChange = { AppSettings.setTargetMinutes((it / 5f).toInt() * 5) },
+                valueRange = 0f..90f,
+                steps = 17,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.settings_auto_stop),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Switch(checked = settings.autoStopAtTarget, onCheckedChange = { AppSettings.setAutoStopAtTarget(it) })
+        }
+        Text(text = stringResource(R.string.settings_auto_stop_help), style = MaterialTheme.typography.bodySmall)
+
         Text(text = stringResource(R.string.settings_music_section), style = MaterialTheme.typography.titleMedium)
 
         OutlinedTextField(

@@ -20,6 +20,17 @@
     <string name="music_playing">已請 Spotify 播放歌單（如果沒聲音，請確認歌單裡有歌）</string>
     <string name="music_connecting">正在連線 Spotify…</string>
 
+    <string name="workout_target_remaining">目標 %1$d 分鐘，還剩 %2$s</string>
+    <string name="workout_target_done">已達目標 %1$d 分鐘</string>
+    <string name="target_title">時間到了！</string>
+    <string name="target_text">整段 %1$s，超慢跑 %2$s。節拍器與音樂已停止，要儲存並結束這次運動嗎？</string>
+
+    <string name="settings_target_section">運動目標時間</string>
+    <string name="settings_target_value">整段運動目標：%1$d 分鐘</string>
+    <string name="settings_target_off">不設目標時間</string>
+    <string name="settings_auto_stop">到目標時間自動停止音樂與節拍器</string>
+    <string name="settings_auto_stop_help">到時間會用手機的媒體鍵暫停正在播放的音樂（Spotify 或其他音樂 App 都可以），並震動三下提醒。不需要 Spotify 授權。</string>
+
     <string name="settings_title">設定</string>
     <string name="settings_music_section">運動音樂（Spotify）</string>
     <string name="settings_playlist_label">Spotify 歌單連結</string>

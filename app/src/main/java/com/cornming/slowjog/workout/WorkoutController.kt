@@ -5,9 +5,14 @@ import android.os.SystemClock
 import com.cornming.slowjog.data.RecordRepository
 import com.cornming.slowjog.data.WorkoutRecord
 import com.cornming.slowjog.metronome.MetronomeController
+import com.cornming.slowjog.music.MusicControl
+import com.cornming.slowjog.settings.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +32,8 @@ object WorkoutController {
         val active: Boolean = false,
         val running: Boolean = false,
         val jogging: Boolean = false,
+        /** 目標時間到了，等待使用者選擇儲存結束或繼續。 */
+        val targetPrompt: Boolean = false,
     )
 
     private val timer = WorkoutTimer()
@@ -35,6 +42,12 @@ object WorkoutController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var startedAtWall = 0L
+    private var targetMinutes = 0
+    private var autoStop = true
+    private var targetReached = false
+    private var targetPrompt = false
+    private var musicRequested = false
+    private var targetJob: Job? = null
 
     init {
         // 使用者從通知上按「停止」時，節拍器停了，超慢跑階段也要跟著結束。
@@ -51,17 +64,75 @@ object WorkoutController {
     }
 
     private fun publish() {
-        _state.value = State(active = timer.started, running = timer.running, jogging = timer.jogging)
+        _state.value = State(
+            active = timer.started,
+            running = timer.running,
+            jogging = timer.jogging,
+            targetPrompt = targetPrompt,
+        )
     }
 
     @Synchronized
-    fun start(context: Context) {
+    fun start(context: Context, musicRequested: Boolean = false) {
         if (timer.started) return
         if (MetronomeController.state.value.running) MetronomeController.stop(context) // 結束試聽
         startedAtWall = System.currentTimeMillis()
         timer.start(SystemClock.elapsedRealtime())
+        val settings = AppSettings.settings.value
+        targetMinutes = settings.targetMinutes
+        autoStop = settings.autoStopAtTarget
+        targetReached = false
+        targetPrompt = false
+        this.musicRequested = musicRequested
+        publish()
+        watchTarget(context.applicationContext)
+    }
+
+    /** 每半秒檢查一次是否到了目標時間；暫停期間時間不走，所以不會誤觸發。 */
+    private fun watchTarget(app: Context) {
+        targetJob?.cancel()
+        if (targetMinutes <= 0) return
+        targetJob = scope.launch {
+            while (isActive) {
+                delay(500)
+                synchronized(this@WorkoutController) {
+                    if (timer.started && !targetReached &&
+                        TargetTime.isReached(timer.elapsedMs(SystemClock.elapsedRealtime()), targetMinutes)
+                    ) {
+                        onTargetReached(app)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun onTargetReached(app: Context) {
+        targetReached = true
+        targetPrompt = true
+        if (autoStop) {
+            if (timer.jogging) {
+                timer.endJog(SystemClock.elapsedRealtime())
+                MetronomeController.stop(app)
+            }
+            MusicControl.pause(app)
+        }
+        MusicControl.vibrateTimeUp(app)
         publish()
     }
+
+    /** 目標時間到了之後選擇「繼續運動」：收起提示，不再重複觸發。 */
+    @Synchronized
+    fun dismissTargetPrompt() {
+        targetPrompt = false
+        publish()
+    }
+
+    /** 目標時間（分鐘）；0 為不設目標。 */
+    @Synchronized
+    fun targetMinutes(): Int = targetMinutes
+
+    @Synchronized
+    fun targetReached(): Boolean = targetReached
 
     @Synchronized
     fun startJog(context: Context) {
@@ -98,7 +169,11 @@ object WorkoutController {
     @Synchronized
     fun finish(context: Context, save: Boolean) {
         if (!timer.started) return
+        targetJob?.cancel()
+        targetJob = null
         if (MetronomeController.state.value.running) MetronomeController.stop(context)
+        if (musicRequested && autoStop && !targetReached) MusicControl.pause(context)
+        targetPrompt = false
         val summary = timer.finish(SystemClock.elapsedRealtime())
         val bpm = MetronomeController.state.value.bpm
         val startedAt = startedAtWall

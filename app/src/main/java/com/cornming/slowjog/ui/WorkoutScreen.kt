@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cornming.slowjog.R
 import com.cornming.slowjog.metronome.MetronomeController
+import com.cornming.slowjog.workout.TargetTime
 import com.cornming.slowjog.workout.WorkoutController
 
 /** 運動中畫面：整段時間與超慢跑時間、節拍閃動、暫停與結束。運動中螢幕恆亮。 */
@@ -82,6 +83,19 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = stringResource(R.string.workout_total_time), style = MaterialTheme.typography.bodySmall)
             Text(text = formatClock(elapsed), fontSize = 56.sp, style = MaterialTheme.typography.displayMedium)
+        }
+        val targetMin = WorkoutController.targetMinutes()
+        if (targetMin > 0) {
+            val remaining = TargetTime.remainingSec(elapsed * 1000L, targetMin) ?: 0
+            Text(
+                text = if (remaining > 0) {
+                    stringResource(R.string.workout_target_remaining, targetMin, formatClock(remaining))
+                } else {
+                    stringResource(R.string.workout_target_done, targetMin)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = stringResource(R.string.workout_jog_time), style = MaterialTheme.typography.bodySmall)
@@ -145,6 +159,26 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
                 onClick = { confirmFinish = true },
             ) { Text(stringResource(R.string.workout_finish)) }
         }
+    }
+
+    if (workout.targetPrompt) {
+        AlertDialog(
+            onDismissRequest = { WorkoutController.dismissTargetPrompt() },
+            title = { Text(stringResource(R.string.target_title)) },
+            text = {
+                Text(stringResource(R.string.target_text, formatClock(elapsed), formatClock(jog)))
+            },
+            confirmButton = {
+                Button(onClick = { WorkoutController.finish(context, save = true) }) {
+                    Text(stringResource(R.string.finish_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { WorkoutController.dismissTargetPrompt() }) {
+                    Text(stringResource(R.string.finish_continue))
+                }
+            },
+        )
     }
 
     if (confirmFinish) {

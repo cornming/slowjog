@@ -69,7 +69,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
     // 開始運動；需要時請 Spotify 播放歌單，結果以提示訊息告知。
     fun startWorkout(playMusic: Boolean) {
-        WorkoutController.start(context)
+        WorkoutController.start(context, musicRequested = playMusic)
         if (playMusic) {
             android.widget.Toast.makeText(context.applicationContext, R.string.music_connecting, android.widget.Toast.LENGTH_SHORT).show()
             SpotifyPlayer.play(context, settings) { outcome ->

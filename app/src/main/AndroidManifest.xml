@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 運動目標時間到的震動提醒 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- 檢查更新與下載新版：只連到 GitHub，不送出任何使用者資料 -->
     <uses-permission android:name="android.permission.INTERNET" />
