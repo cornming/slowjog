@@ -8,6 +8,7 @@ lifecycle = "2.8.7"
 junit = "4.13.2"
 orgJson = "20240303"
 room = "2.6.1"
+glance = "1.1.1"
 ksp = "2.0.21-1.0.28"
 
 [libraries]
@@ -22,6 +23,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 
 [plugins]

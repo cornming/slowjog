@@ -56,6 +56,12 @@
     <string name="settings_reminder_time">提醒時間：%1$02d:%2$02d（上面拉桿調小時，下面調分鐘）</string>
     <string name="settings_reminder_help">一天提醒一次；今天已經運動就不會提醒。連續漏掉兩天以上，當天會在原本時間後 %1$d 小時再補提醒一次（那時還沒運動才會響）。提醒用系統的省電鬧鐘，可能晚幾分鐘才響。需要允許通知。</string>
 
+    <string name="widget_description">累計超慢跑時間與連續運動天數</string>
+    <string name="widget_total_label">累計超慢跑</string>
+    <string name="widget_streak">連續 %1$d 天</string>
+    <string name="widget_done_today">今天已完成</string>
+    <string name="widget_not_yet">今天還沒運動</string>
+
     <string name="settings_title">設定</string>
     <string name="settings_music_section">運動音樂（Spotify）</string>
     <string name="settings_playlist_label">Spotify 歌單連結</string>
