@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -34,12 +33,12 @@ import com.cornming.slowjog.R
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.settings.MusicMode
 import com.cornming.slowjog.spotify.SpotifyLink
+import com.cornming.slowjog.sound.CompletionChime
 import com.cornming.slowjog.spotify.SpotifyPlayer
+import com.cornming.slowjog.workout.Distance
+import kotlin.math.roundToInt
 
-/** 固定的 debug 簽章指紋（keystore/debug.keystore），填在 Spotify 開發者後台。 */
-private const val SIGNING_SHA1 = "00:06:F8:50:F7:CA:FC:8B:9C:B0:11:34:52:D7:0C:AC:3B:89:36:D4"
-
-/** 設定分頁：運動音樂（Spotify 歌單、開始運動時的行為、隨機播放、Client ID）。 */
+/** 設定分頁：到達目標時的行為與步幅、運動音樂（Spotify 歌單與開始運動時的行為）。目標本身在首頁設定。 */
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -61,22 +60,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     ) {
         Text(text = stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
         Text(text = stringResource(R.string.settings_target_section), style = MaterialTheme.typography.titleMedium)
-        Column {
-            Text(
-                text = if (settings.targetMinutes > 0) {
-                    stringResource(R.string.settings_target_value, settings.targetMinutes)
-                } else {
-                    stringResource(R.string.settings_target_off)
-                },
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Slider(
-                value = settings.targetMinutes.toFloat(),
-                onValueChange = { AppSettings.setTargetMinutes((it / 5f).toInt() * 5) },
-                valueRange = 0f..90f,
-                steps = 17,
-            )
-        }
+        Text(text = stringResource(R.string.settings_target_where), style = MaterialTheme.typography.bodySmall)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -90,6 +74,24 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             Switch(checked = settings.autoStopAtTarget, onCheckedChange = { AppSettings.setAutoStopAtTarget(it) })
         }
         Text(text = stringResource(R.string.settings_auto_stop_help), style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { CompletionChime.play() },
+        ) { Text(stringResource(R.string.settings_chime_test)) }
+
+        Column {
+            Text(
+                text = stringResource(R.string.settings_stride_value, settings.strideCm),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Slider(
+                value = settings.strideCm.toFloat(),
+                onValueChange = { AppSettings.setStrideCm((it / 5f).roundToInt() * 5) },
+                valueRange = Distance.MIN_STRIDE_CM.toFloat()..Distance.MAX_STRIDE_CM.toFloat(),
+                steps = (Distance.MAX_STRIDE_CM - Distance.MIN_STRIDE_CM) / 5 - 1,
+            )
+        }
+        Text(text = stringResource(R.string.settings_stride_help), style = MaterialTheme.typography.bodySmall)
 
         Text(text = stringResource(R.string.settings_music_section), style = MaterialTheme.typography.titleMedium)
 
@@ -133,52 +135,19 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(text = stringResource(R.string.settings_shuffle), style = MaterialTheme.typography.bodyLarge)
-            Switch(checked = settings.shuffle, onCheckedChange = { AppSettings.setShuffle(it) })
-        }
-
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),
             enabled = settings.playlistUri != null,
             onClick = {
-                testStatus = context.getString(R.string.music_connecting)
-                SpotifyPlayer.play(context, settings, onProgress = { testStatus = it }) { outcome ->
-                    val message = when (outcome) {
-                        is SpotifyPlayer.Outcome.Playing -> context.getString(R.string.music_playing)
-                        is SpotifyPlayer.Outcome.OpenedSpotify -> outcome.reason
-                        is SpotifyPlayer.Outcome.Failed -> outcome.reason
-                    }
-                    testStatus = message
-                    android.widget.Toast.makeText(context.applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+                testStatus = when (val outcome = SpotifyPlayer.open(context, settings.playlistUri)) {
+                    is SpotifyPlayer.Outcome.Opened -> context.getString(R.string.music_opened)
+                    is SpotifyPlayer.Outcome.OpenedInBrowser -> context.getString(R.string.music_opened_browser)
+                    is SpotifyPlayer.Outcome.Failed -> outcome.reason
                 }
             },
         ) { Text(stringResource(R.string.settings_test_play)) }
         testStatus?.let {
             Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-        }
-
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = settings.spotifyClientId,
-            onValueChange = { AppSettings.setSpotifyClientId(it) },
-            label = { Text(stringResource(R.string.settings_client_id_label)) },
-            singleLine = true,
-        )
-        SelectionContainer {
-            Text(
-                text = stringResource(
-                    R.string.settings_client_id_help,
-                    SpotifyPlayer.REDIRECT_URI,
-                    context.packageName,
-                    SIGNING_SHA1,
-                ),
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
     }
 }

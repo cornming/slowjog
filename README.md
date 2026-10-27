@@ -4,8 +4,10 @@
 
 ## 目前功能（第一版）
 
-- **目標時間到自動停止**：在「設定」選整段運動的目標時間（預設 30 分鐘，可選不設）。運動中畫面顯示還剩多久；時間到時自動結束超慢跑、停掉節拍器、用手機的媒體鍵暫停正在播放的音樂（Spotify 或其他音樂 App 都適用，不需要 Spotify 授權），並震動三下，再詢問是否儲存並結束。目標時間在運動期間由 App 內計時，若 App 被系統結束就不會觸發。
-- **運動音樂（Spotify）**：在「設定」貼上 Spotify 歌單連結（自己選的，或請 Claude 在對話裡建立的 AI 歌單都可以）。按「開始運動」時會詢問是否播放這份歌單，也可以改成自動播放或不使用音樂。有填 Spotify Client ID 時，由 App 透過 Spotify App Remote 在背景直接播放，不離開運動中畫面；沒填或連線失敗時，改為開啟 Spotify 的歌單頁，由你按播放。設定步驟寫在 App 的設定頁。
+- **首頁直接設定今日目標**：首頁的「今日目標」可選「時間」（整段運動，0 到 90 分鐘，每 5 分鐘一格）或「距離」（超慢跑，0 到 10 公里，每 0.25 公里一格），下次按「開始運動」就採用。運動中畫面顯示還剩多久或還差多遠。
+  - **距離是估算，不是量出來的**：App 沒有使用定位或計步器，距離＝超慢跑時間 × BPM（一拍算一步）× 步幅。步幅預設 50 公分只是起始值，請在「設定」依自己的情況校正（設定頁有校正方法）；BPM 中途調整會分段計算。室內跑步機也能用。
+- **達成目標**：響起完成音效（程式合成的四音上行提示音，音量跟著手機媒體音量）、震動三下；預設還會自動結束超慢跑、停掉節拍器、用手機的媒體鍵暫停正在播放的音樂（Spotify 或其他音樂 App 都適用，不需要 Spotify 授權），再詢問是否儲存並結束。手動儲存結束時也會響完成音效。目標在運動期間由 App 內計時，若 App 被系統結束就不會觸發。
+- **運動音樂（Spotify）**：在「設定」貼上 Spotify 歌單連結（自己選的，或請 Claude 在對話裡建立的 AI 歌單都可以）。按「開始運動」時會詢問是否開啟這份歌單，也可以改成自動開啟或不使用音樂。App 會立刻開啟 Spotify 的歌單頁，由你按播放後再切回 SlowJog（不需要 Client ID、沒有等待時間；先前用 Spotify App Remote 直接播放的做法在實機上連線沒有回應，已移除）。
 - **小人物陪跑**：運動中畫面有 Q 版小人物，超慢跑時腳步對齊節拍；每 5 分鐘（超慢跑時間）轉換視角（正面、45 度側面、90 度側面、另一側 45 度，循環），不時冒出鼓勵氣泡。點一下小人物可以立刻換視角並冒出一則氣泡。
 - **運動計時與紀錄**：按「開始運動」進入運動中畫面，整段運動與超慢跑階段分別計時；按「開始超慢跑」才啟動節拍器，結束超慢跑節拍器就停。可暫停、繼續，結束時選擇儲存或放棄。紀錄存在本機，「紀錄」分頁可查看每次的日期、整段與超慢跑時長、BPM，以及累計時間與連續天數。
 - **節拍器**：BPM 可調（40 到 240，預設 180，對應超慢跑建議的每分鐘 180 步）。
@@ -31,8 +33,6 @@
 
 ## 本機建置
 
-`app/libs/` 內有 Spotify App Remote SDK 的 AAR（Apache 2.0，來源與雜湊見 `app/libs/README.md`），不需要另外下載。
-
 需要 JDK 17 與 Android SDK。
 
 ```bash
@@ -55,16 +55,21 @@ app/src/main/java/com/cornming/slowjog/
 │   └── TapTempo.kt             # 點拍子換算 BPM（純 Kotlin，有單元測試）
 ├── workout/
 │   ├── WorkoutTimer.kt         # 整段與超慢跑計時（純 Kotlin，有單元測試）
-│   └── WorkoutController.kt    # 一次運動的入口：開始、暫停、結束、寫入紀錄
+│   ├── Target.kt               # 目標（時間或估算距離）與是否達成（有單元測試）
+│   ├── TargetTime.kt           # 時間目標判斷（有單元測試）
+│   ├── Distance.kt             # 距離估算：BPM × 時間 × 步幅（有單元測試）
+│   └── WorkoutController.kt    # 一次運動的入口：開始、暫停、結束、達成目標、寫入紀錄
 ├── data/
 │   ├── WorkoutRecord.kt        # 運動紀錄（Room）
 │   ├── AppDatabase.kt          # 資料庫與 RecordRepository
 │   └── Stats.kt                # 累計與連續天數（有單元測試）
 ├── settings/
-│   └── AppSettings.kt          # 設定（歌單、音樂模式、隨機播放、Client ID），存在本機
+│   └── AppSettings.kt          # 設定（目標、步幅、歌單、音樂模式），存在本機
+├── sound/
+│   └── CompletionChime.kt      # 完成音效：程式合成（有單元測試）
 ├── spotify/
 │   ├── SpotifyLink.kt          # 解析歌單連結（有單元測試）
-│   └── SpotifyPlayer.kt        # 請 Spotify 播放；失敗時改開歌單頁
+│   └── SpotifyPlayer.kt        # 開啟 Spotify 歌單頁
 ├── update/
 │   ├── UpdateController.kt     # 檢查 GitHub 最新版、下載 APK、交給系統安裝
 │   ├── ReleaseInfo.kt          # 解析 Release 資訊（有單元測試）
@@ -73,7 +78,7 @@ app/src/main/java/com/cornming/slowjog/
 │   ├── MascotLogic.kt          # 視角、影格與氣泡規則（有單元測試）
 │   └── MascotSheets.kt         # 影格表載入與快取
 └── ui/
-    ├── HomeScreen.kt           # 首頁：今天狀態、BPM、開始運動
+    ├── HomeScreen.kt           # 首頁：今天狀態、今日目標、BPM、開始運動
     ├── WorkoutScreen.kt        # 運動中畫面
     ├── MascotView.kt           # 小人物動畫與鼓勵氣泡
     ├── HistoryScreen.kt        # 紀錄分頁

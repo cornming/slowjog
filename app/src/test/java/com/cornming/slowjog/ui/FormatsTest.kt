@@ -28,4 +28,12 @@ class FormatsTest {
         assertEquals("25 分", formatTotal(1500))
         assertEquals("3 小時 25 分", formatTotal(3 * 3600 + 25 * 60 + 30))
     }
+
+    @Test
+    fun distanceShowsKilometers() {
+        assertEquals("0.00 公里", formatDistance(0.0))
+        assertEquals("2.50 公里", formatDistance(2500.0))
+        assertEquals("0.25 公里", formatDistance(250.0))
+        assertEquals("0.00 公里", formatDistance(-10.0))
+    }
 }

@@ -18,3 +18,7 @@ fun formatTotal(totalSec: Long): String {
     val m = minutes % 60
     return if (h > 0) "$h 小時 $m 分" else "$m 分"
 }
+
+/** 距離用：公尺換成公里，固定兩位小數，例如「2.50 公里」。 */
+fun formatDistance(meters: Double): String =
+    "%.2f 公里".format(Locale.ROOT, meters.coerceAtLeast(0.0) / 1000.0)

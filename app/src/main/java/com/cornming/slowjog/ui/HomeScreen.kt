@@ -49,6 +49,8 @@ import com.cornming.slowjog.metronome.TapTempo
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.settings.MusicMode
 import com.cornming.slowjog.spotify.SpotifyPlayer
+import com.cornming.slowjog.workout.Distance
+import com.cornming.slowjog.workout.TargetType
 import com.cornming.slowjog.workout.WorkoutController
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -67,19 +69,16 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
     val startPreview = rememberWithNotificationPermission { MetronomeController.start(context) }
 
-    // 開始運動；需要時請 Spotify 播放歌單，結果以提示訊息告知。
+    // 開始運動；需要音樂時開啟 Spotify 的歌單頁（立刻開啟，沒有等待）。
     fun startWorkout(playMusic: Boolean) {
         WorkoutController.start(context, musicRequested = playMusic)
         if (playMusic) {
-            android.widget.Toast.makeText(context.applicationContext, R.string.music_connecting, android.widget.Toast.LENGTH_SHORT).show()
-            SpotifyPlayer.play(context, settings) { outcome ->
-                val message = when (outcome) {
-                    is SpotifyPlayer.Outcome.Playing -> context.getString(R.string.music_playing)
-                    is SpotifyPlayer.Outcome.OpenedSpotify -> outcome.reason
-                    is SpotifyPlayer.Outcome.Failed -> outcome.reason
-                }
-                android.widget.Toast.makeText(context.applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+            val message = when (val outcome = SpotifyPlayer.open(context, settings.playlistUri)) {
+                is SpotifyPlayer.Outcome.Opened -> context.getString(R.string.music_opened)
+                is SpotifyPlayer.Outcome.OpenedInBrowser -> context.getString(R.string.music_opened_browser)
+                is SpotifyPlayer.Outcome.Failed -> outcome.reason
             }
+            android.widget.Toast.makeText(context.applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -113,6 +112,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         )
 
         SummaryCard(stats)
+
+        GoalCard(bpm = state.bpm)
 
         // 節拍視覺閃動：圓形在每一拍亮起再淡出，環境吵或音量小時也能對拍。
         Box(
@@ -223,11 +224,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             onDismissRequest = { askMusic = false },
             title = { Text(stringResource(R.string.music_ask_title)) },
             text = {
-                Text(
-                    stringResource(
-                        if (settings.shuffle) R.string.music_ask_text_shuffle else R.string.music_ask_text,
-                    ),
-                )
+                Text(stringResource(R.string.music_ask_text))
             },
             confirmButton = {
                 Button(onClick = {
@@ -262,6 +259,82 @@ private fun SummaryCard(stats: Stats) {
                 StatItem(stringResource(R.string.stat_count), stringResource(R.string.times_format, stats.count))
             }
         }
+    }
+}
+
+/** 今日目標：在首頁直接選「時間」或「距離」並用拉桿設定，馬上生效、下次開始運動時採用。 */
+@Composable
+private fun GoalCard(bpm: Int) {
+    val settings by AppSettings.settings.collectAsStateWithLifecycle()
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(text = stringResource(R.string.goal_title), style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TypeButton(R.string.goal_type_time, settings.targetType == TargetType.TIME) {
+                    AppSettings.setTargetType(TargetType.TIME)
+                }
+                TypeButton(R.string.goal_type_distance, settings.targetType == TargetType.DISTANCE) {
+                    AppSettings.setTargetType(TargetType.DISTANCE)
+                }
+            }
+            when (settings.targetType) {
+                TargetType.TIME -> {
+                    Text(
+                        text = if (settings.targetMinutes > 0) {
+                            stringResource(R.string.goal_time_value, settings.targetMinutes)
+                        } else {
+                            stringResource(R.string.goal_off)
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Slider(
+                        value = settings.targetMinutes.toFloat(),
+                        onValueChange = { AppSettings.setTargetMinutes((it / 5f).roundToInt() * 5) },
+                        valueRange = 0f..90f,
+                        steps = 17,
+                    )
+                    Text(text = stringResource(R.string.goal_time_help), style = MaterialTheme.typography.bodySmall)
+                }
+                TargetType.DISTANCE -> {
+                    Text(
+                        text = if (settings.targetDistanceM > 0) {
+                            stringResource(R.string.goal_distance_value, formatDistance(settings.targetDistanceM.toDouble()))
+                        } else {
+                            stringResource(R.string.goal_off)
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Slider(
+                        value = settings.targetDistanceM.toFloat(),
+                        onValueChange = { AppSettings.setTargetDistanceM((it / 250f).roundToInt() * 250) },
+                        valueRange = 0f..10_000f,
+                        steps = 39,
+                    )
+                    val minutes = Distance.minutesFor(settings.targetDistanceM, bpm, settings.strideCm)
+                    Text(
+                        text = stringResource(
+                            R.string.goal_distance_help,
+                            bpm,
+                            settings.strideCm,
+                            Distance.metersPerMinute(bpm, settings.strideCm).roundToInt(),
+                        ) + (minutes?.let { stringResource(R.string.goal_distance_minutes, it) } ?: ""),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypeButton(labelRes: Int, selected: Boolean, onClick: () -> Unit) {
+    if (selected) {
+        Button(onClick = onClick) { Text(stringResource(labelRes)) }
+    } else {
+        OutlinedButton(onClick = onClick) { Text(stringResource(labelRes)) }
     }
 }
 

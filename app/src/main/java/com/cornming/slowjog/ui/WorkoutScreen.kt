@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cornming.slowjog.R
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.workout.TargetTime
+import com.cornming.slowjog.workout.TargetType
 import com.cornming.slowjog.workout.WorkoutController
 
 /** 運動中畫面：整段時間與超慢跑時間、節拍閃動、暫停與結束。運動中螢幕恆亮。 */
@@ -47,6 +48,8 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
     val elapsed = WorkoutController.elapsedSec(now)
     val jog = WorkoutController.jogSec(now)
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
+    val target = WorkoutController.target()
+    val meters = WorkoutController.estimatedMeters(now)
 
     KeepScreenOn(enabled = true)
 
@@ -84,22 +87,35 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
             Text(text = stringResource(R.string.workout_total_time), style = MaterialTheme.typography.bodySmall)
             Text(text = formatClock(elapsed), fontSize = 56.sp, style = MaterialTheme.typography.displayMedium)
         }
-        val targetMin = WorkoutController.targetMinutes()
-        if (targetMin > 0) {
-            val remaining = TargetTime.remainingSec(elapsed * 1000L, targetMin) ?: 0
-            Text(
-                text = if (remaining > 0) {
-                    stringResource(R.string.workout_target_remaining, targetMin, formatClock(remaining))
-                } else {
-                    stringResource(R.string.workout_target_done, targetMin)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+        if (target.enabled) {
+            val line = when (target.type) {
+                TargetType.TIME -> {
+                    val remaining = TargetTime.remainingSec(elapsed * 1000L, target.minutes) ?: 0
+                    if (remaining > 0) {
+                        stringResource(R.string.workout_target_remaining, target.minutes, formatClock(remaining))
+                    } else {
+                        stringResource(R.string.workout_target_done, target.minutes)
+                    }
+                }
+                TargetType.DISTANCE -> {
+                    val left = target.remainingMeters(meters) ?: 0
+                    val goal = formatDistance(target.distanceM.toDouble())
+                    if (left > 0) {
+                        stringResource(R.string.workout_target_distance_remaining, goal, formatDistance(left.toDouble()))
+                    } else {
+                        stringResource(R.string.workout_target_distance_done, goal)
+                    }
+                }
+            }
+            Text(text = line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = stringResource(R.string.workout_jog_time), style = MaterialTheme.typography.bodySmall)
             Text(text = formatClock(jog), style = MaterialTheme.typography.headlineMedium)
+            Text(
+                text = stringResource(R.string.workout_distance, formatDistance(meters)),
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
 
         MascotView(
@@ -166,7 +182,14 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
             onDismissRequest = { WorkoutController.dismissTargetPrompt() },
             title = { Text(stringResource(R.string.target_title)) },
             text = {
-                Text(stringResource(R.string.target_text, formatClock(elapsed), formatClock(jog)))
+                Text(
+                    stringResource(
+                        if (WorkoutController.stoppedAtTarget()) R.string.target_text_stopped else R.string.target_text,
+                        formatClock(elapsed),
+                        formatClock(jog),
+                        formatDistance(meters),
+                    ),
+                )
             },
             confirmButton = {
                 Button(onClick = { WorkoutController.finish(context, save = true) }) {

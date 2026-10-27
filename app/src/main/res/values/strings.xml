@@ -12,24 +12,39 @@
 
     <string name="tab_settings">設定</string>
 
-    <string name="music_ask_title">要播放 Spotify 超慢跑歌單嗎？</string>
-    <string name="music_ask_text">會播放你在設定裡選好的歌單。</string>
-    <string name="music_ask_text_shuffle">會播放你在設定裡選好的歌單，並開啟隨機播放。</string>
-    <string name="music_play">播放並開始</string>
-    <string name="music_skip">不播放，直接開始</string>
-    <string name="music_playing">已請 Spotify 播放歌單（如果沒聲音，請確認歌單裡有歌）</string>
-    <string name="music_connecting">正在連線 Spotify…</string>
+    <string name="music_ask_title">要開啟 Spotify 超慢跑歌單嗎？</string>
+    <string name="music_ask_text">會立刻開啟你在設定裡選好的歌單頁，請在 Spotify 按播放，再切回 SlowJog。運動計時已經開始。</string>
+    <string name="music_play">開啟歌單並開始</string>
+    <string name="music_skip">不用音樂，直接開始</string>
+    <string name="music_opened">已開啟 Spotify 歌單，請按播放，再切回 SlowJog</string>
+    <string name="music_opened_browser">手機沒有 Spotify，已用瀏覽器開啟歌單</string>
+
+    <string name="goal_title">今日目標</string>
+    <string name="goal_type_time">時間</string>
+    <string name="goal_type_distance">距離</string>
+    <string name="goal_off">不設目標</string>
+    <string name="goal_time_value">整段運動 %1$d 分鐘</string>
+    <string name="goal_time_help">從按下「開始運動」起算，含暫停以外的所有時間。</string>
+    <string name="goal_distance_value">超慢跑 %1$s（估算）</string>
+    <string name="goal_distance_help">距離是估算：以目前 %1$d BPM、步幅 %2$d 公分，一拍算一步，每分鐘約 %3$d 公尺。步幅可在設定調整。</string>
+    <string name="goal_distance_minutes">約需超慢跑 %1$d 分鐘。</string>
 
     <string name="workout_target_remaining">目標 %1$d 分鐘，還剩 %2$s</string>
     <string name="workout_target_done">已達目標 %1$d 分鐘</string>
-    <string name="target_title">時間到了！</string>
-    <string name="target_text">整段 %1$s，超慢跑 %2$s。節拍器與音樂已停止，要儲存並結束這次運動嗎？</string>
+    <string name="workout_target_distance_remaining">目標 %1$s，還差約 %2$s</string>
+    <string name="workout_target_distance_done">已達目標 %1$s</string>
+    <string name="workout_distance">估算距離 %1$s</string>
+    <string name="target_title">達成目標！</string>
+    <string name="target_text">整段 %1$s，超慢跑 %2$s，估算距離 %3$s。要儲存並結束這次運動嗎？</string>
+    <string name="target_text_stopped">整段 %1$s，超慢跑 %2$s，估算距離 %3$s。節拍器與音樂已停止，要儲存並結束這次運動嗎？</string>
 
-    <string name="settings_target_section">運動目標時間</string>
-    <string name="settings_target_value">整段運動目標：%1$d 分鐘</string>
-    <string name="settings_target_off">不設目標時間</string>
-    <string name="settings_auto_stop">到目標時間自動停止音樂與節拍器</string>
-    <string name="settings_auto_stop_help">到時間會用手機的媒體鍵暫停正在播放的音樂（Spotify 或其他音樂 App 都可以），並震動三下提醒。不需要 Spotify 授權。</string>
+    <string name="settings_target_section">達成目標時</string>
+    <string name="settings_target_where">目標的時間或距離，請在首頁的「今日目標」設定。</string>
+    <string name="settings_auto_stop">達成目標自動停止音樂與節拍器</string>
+    <string name="settings_auto_stop_help">達成目標時會響起完成音效、震動三下；開啟這項時，還會用手機的媒體鍵暫停正在播放的音樂（Spotify 或其他音樂 App 都可以），不需要 Spotify 授權。完成音效的音量跟著手機的媒體音量。</string>
+    <string name="settings_chime_test">試聽完成音效</string>
+    <string name="settings_stride_value">步幅：%1$d 公分</string>
+    <string name="settings_stride_help">估算距離用。預設 50 公分只是起始值，不是量出來的。校正方法：在已知距離的路線（例如操場一圈）用超慢跑走完，數一下步數，步幅＝距離 ÷ 步數。</string>
 
     <string name="settings_title">設定</string>
     <string name="settings_music_section">運動音樂（Spotify）</string>
@@ -39,13 +54,10 @@
     <string name="settings_playlist_bad">不是 Spotify 歌單連結</string>
     <string name="settings_playlist_help">在 Spotify 打開歌單，按「分享」再「複製連結」，貼到上面。想要 AI 幫你建一份超慢跑歌單，回到 Claude 對話請它建立，再把連結貼過來。</string>
     <string name="settings_mode_title">開始運動時</string>
-    <string name="settings_mode_ask">每次詢問是否播放</string>
-    <string name="settings_mode_always">自動播放，不詢問</string>
+    <string name="settings_mode_ask">每次詢問是否開啟歌單</string>
+    <string name="settings_mode_always">自動開啟歌單，不詢問</string>
     <string name="settings_mode_never">不使用音樂</string>
-    <string name="settings_shuffle">隨機播放</string>
-    <string name="settings_test_play">試播歌單</string>
-    <string name="settings_client_id_label">Spotify Client ID（直接播放才需要）</string>
-    <string name="settings_client_id_help">沒填 Client ID 時，播放會改為開啟 Spotify 的歌單頁，由你按播放。要讓 App 直接在背景播放，只需要設定一次：\n1. 到 developer.spotify.com/dashboard 建立 App，用到的 API 勾選 Android。\n2. Redirect URI 填：%1$s\n3. Android 套件名稱填：%2$s，SHA1 指紋填：%3$s\n4. 把 Client ID 貼在上面。第一次播放時 Spotify 會問你是否授權。需要 Spotify Premium 才能指定播放歌單的順序。</string>
+    <string name="settings_test_play">開啟歌單試試</string>
 
     <string name="tab_home">首頁</string>
     <string name="tab_history">紀錄</string>
