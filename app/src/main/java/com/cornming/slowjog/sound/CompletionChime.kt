@@ -1,9 +1,5 @@
 package com.cornming.slowjog.sound
 
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
-import kotlin.concurrent.thread
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.min
@@ -43,39 +39,5 @@ object CompletionChime {
     }
 
     /** 播放一次；在背景執行緒進行，不會卡住呼叫的人。失敗時靜默放棄（提示音不是必要功能）。 */
-    fun play() {
-        thread(name = "completion-chime", isDaemon = true) {
-            val data = samples()
-            val track = try {
-                AudioTrack.Builder()
-                    .setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build(),
-                    )
-                    .setAudioFormat(
-                        AudioFormat.Builder()
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(SAMPLE_RATE)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                            .build(),
-                    )
-                    .setBufferSizeInBytes(data.size * 2)
-                    .setTransferMode(AudioTrack.MODE_STATIC)
-                    .build()
-            } catch (e: Exception) {
-                return@thread
-            }
-            try {
-                track.write(data, 0, data.size)
-                track.play()
-                Thread.sleep(data.size * 1000L / SAMPLE_RATE + 200)
-            } catch (e: Exception) {
-                // 放棄即可
-            } finally {
-                runCatching { track.release() }
-            }
-        }
-    }
+    fun play() = Tones.play(samples(), SAMPLE_RATE)
 }

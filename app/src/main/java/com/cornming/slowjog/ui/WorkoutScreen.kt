@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cornming.slowjog.R
 import com.cornming.slowjog.metronome.MetronomeController
+import com.cornming.slowjog.plan.Announcements
 import com.cornming.slowjog.workout.TargetTime
 import com.cornming.slowjog.workout.TargetType
 import com.cornming.slowjog.workout.WorkoutController
@@ -108,6 +109,34 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
                 }
             }
             Text(text = line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        val plan = WorkoutController.plan()
+        if (plan != null) {
+            val position = plan.position(elapsed * 1000L)
+            val stage = position.stage
+            if (stage != null) {
+                Text(
+                    text = stringResource(
+                        R.string.workout_stage,
+                        Announcements.stageName(stage.kind),
+                        formatClock(((position.remainingMs + 999) / 1000).toInt()),
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                plan.next(position.index)?.let {
+                    Text(
+                        text = stringResource(R.string.workout_stage_next, Announcements.stageName(it.kind), it.minutes),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.workout_plan_done),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = stringResource(R.string.workout_jog_time), style = MaterialTheme.typography.bodySmall)

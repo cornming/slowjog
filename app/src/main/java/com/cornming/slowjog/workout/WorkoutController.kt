@@ -6,6 +6,10 @@ import com.cornming.slowjog.data.RecordRepository
 import com.cornming.slowjog.data.WorkoutRecord
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.music.MusicControl
+import com.cornming.slowjog.plan.Announcements
+import com.cornming.slowjog.plan.StageCue
+import com.cornming.slowjog.plan.WorkoutPlan
+import com.cornming.slowjog.voice.VoiceAnnouncer
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.sound.CompletionChime
 import com.cornming.slowjog.widget.SlowJogWidget
@@ -49,6 +53,11 @@ object WorkoutController {
     private var steps = 0.0
     private var lastAccrue = 0L
     private var autoStop = true
+    private var plan: WorkoutPlan? = null
+    private var cues = true
+    private var voice = true
+    private var lastStageIndex = -1
+    private var lastElapsedAnnounced = -1
     private var targetReached = false
     private var targetPrompt = false
     private var musicRequested = false
@@ -103,6 +112,11 @@ object WorkoutController {
         steps = 0.0
         lastAccrue = now
         autoStop = settings.autoStopAtTarget
+        plan = if (settings.planEnabled) settings.plan().takeIf { it.stages.isNotEmpty() } else null
+        cues = settings.cuesEnabled
+        voice = settings.voiceEnabled
+        lastStageIndex = -1
+        lastElapsedAnnounced = -1
         targetReached = false
         targetPrompt = false
         this.musicRequested = musicRequested
@@ -110,23 +124,57 @@ object WorkoutController {
         watchTarget(context.applicationContext)
     }
 
-    /** 每半秒檢查一次是否達到目標；暫停期間時間與步數都不增加，所以不會誤觸發。 */
+    /**
+     * 每半秒檢查一次：階段有沒有切換、要不要念經過時間、是否達到目標。
+     * 暫停期間時間與步數都不增加，所以不會誤觸發。
+     */
     private fun watchTarget(app: Context) {
         targetJob?.cancel()
-        if (!target.enabled) return
         targetJob = scope.launch {
             while (isActive) {
-                delay(500)
                 synchronized(this@WorkoutController) {
-                    if (!timer.started || targetReached) return@synchronized
+                    if (!timer.started) return@synchronized
                     val now = SystemClock.elapsedRealtime()
                     accrue(now)
-                    if (target.isReached(timer.elapsedMs(now), Distance.meters(steps, strideCm))) {
+                    val elapsedMs = timer.elapsedMs(now)
+                    if (timer.running) {
+                        checkStage(app, elapsedMs)
+                        checkElapsedVoice(app, elapsedMs)
+                    }
+                    if (target.enabled && !targetReached &&
+                        target.isReached(elapsedMs, Distance.meters(steps, strideCm))
+                    ) {
                         onTargetReached(app)
                     }
                 }
+                delay(500)
             }
         }
+    }
+
+    /** 走到新的階段（包含剛開始的第一個階段、以及課表全部完成）就提示一次。 */
+    private fun checkStage(app: Context, elapsedMs: Long) {
+        val p = plan ?: return
+        val position = p.position(elapsedMs)
+        if (position.index == lastStageIndex) return
+        lastStageIndex = position.index
+        val stage = position.stage
+        if (stage != null) {
+            StageCue.play(app, stage.kind, sound = cues, vibrate = cues)
+            if (voice) VoiceAnnouncer.speak(app, Announcements.stageStart(stage))
+        } else {
+            // 課表走完。有設目標時由「達成目標」負責響完成音效，避免重複。
+            if (!target.enabled && cues) CompletionChime.play()
+            if (voice) VoiceAnnouncer.speak(app, Announcements.PLAN_DONE)
+        }
+    }
+
+    /** 每 5 分鐘念一次經過時間；剛好在階段交界附近就略過，因為階段播報已經說了。 */
+    private fun checkElapsedVoice(app: Context, elapsedMs: Long) {
+        if (!voice || !Announcements.shouldAnnounceElapsed(elapsedMs, lastElapsedAnnounced)) return
+        lastElapsedAnnounced = (elapsedMs / 60_000L).toInt()
+        if (plan?.isNearBoundary(elapsedMs, 1_500) == true) return
+        VoiceAnnouncer.speak(app, Announcements.elapsed(lastElapsedAnnounced))
     }
 
     private fun onTargetReached(app: Context) {
@@ -158,6 +206,10 @@ object WorkoutController {
         targetPrompt = false
         publish()
     }
+
+    /** 這次運動的課表（開始運動當下的設定）；沒有啟用課表時為 null。 */
+    @Synchronized
+    fun plan(): WorkoutPlan? = plan
 
     /** 這次運動的目標（開始運動當下的設定）。 */
     @Synchronized

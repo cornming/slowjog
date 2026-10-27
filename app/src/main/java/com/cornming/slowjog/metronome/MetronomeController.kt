@@ -3,6 +3,7 @@ package com.cornming.slowjog.metronome
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
+import com.cornming.slowjog.settings.AppSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +43,7 @@ object MetronomeController {
     }
 
     fun start(context: Context) {
+        engine.sound = AppSettings.settings.value.metronomeSound // 依設定的音色出聲
         val intent = Intent(context, MetronomeService::class.java).setAction(MetronomeService.ACTION_START)
         ContextCompat.startForegroundService(context, intent)
     }

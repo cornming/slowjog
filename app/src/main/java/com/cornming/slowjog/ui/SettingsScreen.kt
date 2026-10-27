@@ -36,7 +36,14 @@ import com.cornming.slowjog.spotify.SpotifyLink
 import com.cornming.slowjog.data.CsvExport
 import com.cornming.slowjog.data.Habit
 import com.cornming.slowjog.data.RecordRepository
+import com.cornming.slowjog.plan.Announcements
+import com.cornming.slowjog.plan.StageKind
+import com.cornming.slowjog.plan.WorkoutPlan
 import com.cornming.slowjog.reminder.ReminderScheduler
+import com.cornming.slowjog.sound.ClickSound
+import com.cornming.slowjog.sound.ClickSounds
+import com.cornming.slowjog.sound.Tones
+import com.cornming.slowjog.voice.VoiceAnnouncer
 import com.cornming.slowjog.sound.CompletionChime
 import com.cornming.slowjog.spotify.SpotifyPlayer
 import com.cornming.slowjog.workout.Distance
@@ -110,6 +117,67 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             text = stringResource(R.string.settings_reminder_help, 3),
             style = MaterialTheme.typography.bodySmall,
         )
+
+        Text(text = stringResource(R.string.settings_plan_section), style = MaterialTheme.typography.titleMedium)
+        SwitchRow(R.string.settings_plan_on, settings.planEnabled) { AppSettings.setPlanEnabled(it) }
+        if (settings.planEnabled) {
+            val minutes = listOf(settings.planWarmupMin, settings.planJogMin, settings.planStrengthMin, settings.planCooldownMin)
+            StageKind.values().forEachIndexed { i, kind ->
+                Text(
+                    text = stringResource(R.string.settings_plan_stage, Announcements.stageName(kind), minutes[i]),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Slider(
+                    value = minutes[i].toFloat(),
+                    onValueChange = {
+                        val m = minutes.toMutableList().also { list -> list[i] = it.roundToInt() }
+                        AppSettings.setPlanMinutes(m[0], m[1], m[2], m[3])
+                    },
+                    valueRange = 0f..30f,
+                    steps = 29,
+                )
+            }
+            Text(
+                text = stringResource(R.string.settings_plan_total, minutes.sum()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        SwitchRow(R.string.settings_cues_on, settings.cuesEnabled) { AppSettings.setCuesEnabled(it) }
+        SwitchRow(R.string.settings_voice_on, settings.voiceEnabled) { AppSettings.setVoiceEnabled(it) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val kind = StageKind.JOG
+                    com.cornming.slowjog.plan.StageCue.play(context, kind, sound = true, vibrate = true)
+                },
+            ) { Text(stringResource(R.string.settings_cue_test)) }
+            OutlinedButton(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    VoiceAnnouncer.speak(context, Announcements.stageStart(com.cornming.slowjog.plan.Stage(StageKind.JOG, WorkoutPlan.DEFAULT_JOG)))
+                },
+            ) { Text(stringResource(R.string.settings_voice_test)) }
+        }
+        Text(text = stringResource(R.string.settings_plan_help), style = MaterialTheme.typography.bodySmall)
+
+        Text(text = stringResource(R.string.settings_sound_section), style = MaterialTheme.typography.titleMedium)
+        Column {
+            ModeOption(R.string.settings_sound_click, settings.metronomeSound == ClickSound.CLICK) {
+                AppSettings.setMetronomeSound(ClickSound.CLICK)
+                Tones.play(ClickSounds.samples(ClickSound.CLICK), ClickSounds.SAMPLE_RATE)
+            }
+            ModeOption(R.string.settings_sound_clap, settings.metronomeSound == ClickSound.CLAP) {
+                AppSettings.setMetronomeSound(ClickSound.CLAP)
+                Tones.play(ClickSounds.samples(ClickSound.CLAP), ClickSounds.SAMPLE_RATE)
+            }
+            ModeOption(R.string.settings_sound_snap, settings.metronomeSound == ClickSound.SNAP) {
+                AppSettings.setMetronomeSound(ClickSound.SNAP)
+                Tones.play(ClickSounds.samples(ClickSound.SNAP), ClickSounds.SAMPLE_RATE)
+            }
+        }
+        Text(text = stringResource(R.string.settings_sound_help), style = MaterialTheme.typography.bodySmall)
 
         Text(text = stringResource(R.string.settings_habit_section), style = MaterialTheme.typography.titleMedium)
         Text(
@@ -241,6 +309,22 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             onClick = { exportLauncher.launch("slowjog-records-${java.time.LocalDate.now()}.csv") },
         ) { Text(stringResource(R.string.settings_export)) }
         Text(text = stringResource(R.string.settings_export_help), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun SwitchRow(labelRes: Int, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = stringResource(labelRes),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Switch(checked = checked, onCheckedChange = onChange)
     }
 }
 

@@ -3,6 +3,8 @@ package com.cornming.slowjog.settings
 import android.content.Context
 import android.content.SharedPreferences
 import com.cornming.slowjog.data.Habit
+import com.cornming.slowjog.plan.WorkoutPlan
+import com.cornming.slowjog.sound.ClickSound
 import com.cornming.slowjog.workout.Distance
 import com.cornming.slowjog.workout.Target
 import com.cornming.slowjog.workout.TargetType
@@ -33,8 +35,21 @@ data class Settings(
     val reminderMinute: Int = 30,
     /** 每週目標運動天數，用來算習慣分數。 */
     val weeklyTargetDays: Int = Habit.DEFAULT_WEEKLY_TARGET,
+    val metronomeSound: ClickSound = ClickSound.CLICK,
+    /** 階段式課表：暖身、超慢跑、肌力、收操各幾分鐘（0 代表略過該階段）。 */
+    val planEnabled: Boolean = true,
+    val planWarmupMin: Int = WorkoutPlan.DEFAULT_WARMUP,
+    val planJogMin: Int = WorkoutPlan.DEFAULT_JOG,
+    val planStrengthMin: Int = WorkoutPlan.DEFAULT_STRENGTH,
+    val planCooldownMin: Int = WorkoutPlan.DEFAULT_COOLDOWN,
+    /** 階段切換時的提示音與震動。 */
+    val cuesEnabled: Boolean = true,
+    /** 語音播報階段與經過時間。 */
+    val voiceEnabled: Boolean = true,
 ) {
     fun target(): Target = Target(targetType, targetMinutes, targetDistanceM)
+
+    fun plan(): WorkoutPlan = WorkoutPlan.of(planWarmupMin, planJogMin, planStrengthMin, planCooldownMin)
 }
 
 /** 設定都存在本機的 SharedPreferences。 */
@@ -52,6 +67,14 @@ object AppSettings {
     private const val KEY_REMINDER_MINUTE = "reminderMinute"
     private const val KEY_NOTIFICATION_ASKED = "notificationAsked"
     private const val KEY_WEEKLY_TARGET = "weeklyTargetDays"
+    private const val KEY_SOUND = "metronomeSound"
+    private const val KEY_PLAN_ON = "planEnabled"
+    private const val KEY_PLAN_WARMUP = "planWarmupMin"
+    private const val KEY_PLAN_JOG = "planJogMin"
+    private const val KEY_PLAN_STRENGTH = "planStrengthMin"
+    private const val KEY_PLAN_COOLDOWN = "planCooldownMin"
+    private const val KEY_CUES = "cuesEnabled"
+    private const val KEY_VOICE = "voiceEnabled"
 
     private var prefs: SharedPreferences? = null
     private val _settings = MutableStateFlow(Settings())
@@ -77,7 +100,47 @@ object AppSettings {
             reminderMinute = p.getInt(KEY_REMINDER_MINUTE, 30).coerceIn(0, 59),
             weeklyTargetDays = p.getInt(KEY_WEEKLY_TARGET, Habit.DEFAULT_WEEKLY_TARGET)
                 .coerceIn(Habit.MIN_WEEKLY_TARGET, Habit.MAX_WEEKLY_TARGET),
+            metronomeSound = runCatching { ClickSound.valueOf(p.getString(KEY_SOUND, null).orEmpty()) }
+                .getOrDefault(ClickSound.CLICK),
+            planEnabled = p.getBoolean(KEY_PLAN_ON, true),
+            planWarmupMin = p.getInt(KEY_PLAN_WARMUP, WorkoutPlan.DEFAULT_WARMUP).coerceIn(0, 60),
+            planJogMin = p.getInt(KEY_PLAN_JOG, WorkoutPlan.DEFAULT_JOG).coerceIn(0, 60),
+            planStrengthMin = p.getInt(KEY_PLAN_STRENGTH, WorkoutPlan.DEFAULT_STRENGTH).coerceIn(0, 60),
+            planCooldownMin = p.getInt(KEY_PLAN_COOLDOWN, WorkoutPlan.DEFAULT_COOLDOWN).coerceIn(0, 60),
+            cuesEnabled = p.getBoolean(KEY_CUES, true),
+            voiceEnabled = p.getBoolean(KEY_VOICE, true),
         )
+    }
+
+    fun setMetronomeSound(value: ClickSound) {
+        prefs?.edit()?.putString(KEY_SOUND, value.name)?.apply()
+        _settings.value = _settings.value.copy(metronomeSound = value)
+    }
+
+    fun setPlanEnabled(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_PLAN_ON, value)?.apply()
+        _settings.value = _settings.value.copy(planEnabled = value)
+    }
+
+    /** 設定四個階段的分鐘數（各 0 到 60）。 */
+    fun setPlanMinutes(warmup: Int, jog: Int, strength: Int, cooldown: Int) {
+        val w = warmup.coerceIn(0, 60)
+        val j = jog.coerceIn(0, 60)
+        val s = strength.coerceIn(0, 60)
+        val c = cooldown.coerceIn(0, 60)
+        prefs?.edit()?.putInt(KEY_PLAN_WARMUP, w)?.putInt(KEY_PLAN_JOG, j)?.putInt(KEY_PLAN_STRENGTH, s)
+            ?.putInt(KEY_PLAN_COOLDOWN, c)?.apply()
+        _settings.value = _settings.value.copy(planWarmupMin = w, planJogMin = j, planStrengthMin = s, planCooldownMin = c)
+    }
+
+    fun setCuesEnabled(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_CUES, value)?.apply()
+        _settings.value = _settings.value.copy(cuesEnabled = value)
+    }
+
+    fun setVoiceEnabled(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_VOICE, value)?.apply()
+        _settings.value = _settings.value.copy(voiceEnabled = value)
     }
 
     fun setWeeklyTargetDays(value: Int) {

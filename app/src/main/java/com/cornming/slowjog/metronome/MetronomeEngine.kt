@@ -3,6 +3,8 @@ package com.cornming.slowjog.metronome
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import com.cornming.slowjog.sound.ClickSound
+import com.cornming.slowjog.sound.ClickSounds
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
 import kotlin.math.PI
@@ -28,6 +30,10 @@ class MetronomeEngine(
             field = value.coerceIn(0f, 1f)
             runCatching { track?.setVolume(field) }
         }
+
+    /** 節拍音色；從下一拍開始生效。 */
+    @Volatile
+    var sound: ClickSound = ClickSound.CLICK
 
     @Volatile
     private var running = false
@@ -104,7 +110,8 @@ class MetronomeEngine(
             // 每拍重新讀取 bpm，所以調整速度會從下一拍開始生效。
             val framesPerBeat = SAMPLE_RATE * 60 / bpm.coerceIn(MIN_BPM, MAX_BPM)
             val beat = ShortArray(framesPerBeat)
-            System.arraycopy(CLICK, 0, beat, 0, minOf(CLICK.size, framesPerBeat))
+            val click = ClickSounds.samples(sound)
+            System.arraycopy(click, 0, beat, 0, minOf(click.size, framesPerBeat))
 
             beatStarts.add(writtenFrames)
             // 串流模式下這個呼叫會阻塞，直到緩衝區有空間，因此寫入速度自然被播放速度牽制。
@@ -145,14 +152,5 @@ class MetronomeEngine(
 
         private const val POLL_INTERVAL_MS = 4L
         private const val JOIN_TIMEOUT_MS = 500L
-
-        /** 約 30 毫秒、1000 Hz 的短促「答」聲，音量快速衰減。 */
-        private val CLICK: ShortArray = ShortArray(SAMPLE_RATE * 30 / 1000).also { samples ->
-            for (i in samples.indices) {
-                val envelope = exp(-i / (samples.size * 0.25))
-                val wave = sin(2.0 * PI * 1000.0 * i / SAMPLE_RATE)
-                samples[i] = (wave * envelope * Short.MAX_VALUE * 0.8).toInt().toShort()
-            }
-        }
     }
 }
