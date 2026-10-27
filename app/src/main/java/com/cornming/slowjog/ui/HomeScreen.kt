@@ -71,6 +71,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     fun startWorkout(playMusic: Boolean) {
         WorkoutController.start(context)
         if (playMusic) {
+            android.widget.Toast.makeText(context.applicationContext, R.string.music_connecting, android.widget.Toast.LENGTH_SHORT).show()
             SpotifyPlayer.play(context, settings) { outcome ->
                 val message = when (outcome) {
                     is SpotifyPlayer.Outcome.Playing -> context.getString(R.string.music_playing)

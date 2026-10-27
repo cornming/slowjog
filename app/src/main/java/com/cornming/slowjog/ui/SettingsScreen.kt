@@ -48,6 +48,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     }
     val parsed = SpotifyLink.parsePlaylist(linkText)
     val linkBad = linkText.isNotBlank() && parsed == null
+    var testStatus by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = modifier
@@ -113,16 +114,21 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             enabled = settings.playlistUri != null,
             onClick = {
+                testStatus = context.getString(R.string.music_connecting)
                 SpotifyPlayer.play(context, settings) { outcome ->
                     val message = when (outcome) {
                         is SpotifyPlayer.Outcome.Playing -> context.getString(R.string.music_playing)
                         is SpotifyPlayer.Outcome.OpenedSpotify -> outcome.reason
                         is SpotifyPlayer.Outcome.Failed -> outcome.reason
                     }
+                    testStatus = message
                     android.widget.Toast.makeText(context.applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
                 }
             },
         ) { Text(stringResource(R.string.settings_test_play)) }
+        testStatus?.let {
+            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        }
 
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),

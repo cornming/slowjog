@@ -4,10 +4,14 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import com.cornming.slowjog.settings.Settings
 import com.spotify.android.appremote.api.ConnectionParams
 import com.spotify.android.appremote.api.Connector
 import com.spotify.android.appremote.api.SpotifyAppRemote
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 請 Spotify 播放設定好的歌單。
@@ -26,36 +30,78 @@ object SpotifyPlayer {
         data class Failed(val reason: String) : Outcome
     }
 
+    private const val TAG = "SlowJogSpotify"
+    private const val TIMEOUT_MS = 8_000L
+    private val main = Handler(Looper.getMainLooper())
+
+    /**
+     * 請 Spotify 播放歌單。結果一定會在主執行緒回報一次：
+     * SDK 的回呼可能在背景執行緒，也可能完全沒有回應，所以另外設了逾時，逾時就改開歌單頁。
+     */
     fun play(context: Context, settings: Settings, onResult: (Outcome) -> Unit) {
-        val uri = settings.playlistUri ?: return onResult(Outcome.Failed("尚未設定歌單"))
+        val uri = settings.playlistUri
+        if (uri == null) {
+            onResult(Outcome.Failed("尚未設定歌單"))
+            return
+        }
         if (settings.spotifyClientId.isBlank()) {
             onResult(openInSpotify(context, uri, "尚未設定 Client ID，已開啟 Spotify 歌單，請按播放"))
             return
         }
-        val params = ConnectionParams.Builder(settings.spotifyClientId)
-            .setRedirectUri(REDIRECT_URI)
-            .showAuthView(true)
-            .build()
-        SpotifyAppRemote.connect(context, params, object : Connector.ConnectionListener {
-            override fun onConnected(remote: SpotifyAppRemote) {
-                remote.playerApi.setShuffle(settings.shuffle)
-                remote.playerApi.play(uri)
-                    .setResultCallback {
-                        // 播放由 Spotify App 負責，中斷連線不會停止音樂。
-                        SpotifyAppRemote.disconnect(remote)
-                        onResult(Outcome.Playing)
-                    }
-                    .setErrorCallback { error ->
-                        SpotifyAppRemote.disconnect(remote)
-                        onResult(openInSpotify(context, uri, "無法直接播放（${error.message ?: "未知錯誤"}），已開啟 Spotify 歌單"))
-                    }
-            }
 
-            override fun onFailure(error: Throwable) {
-                onResult(openInSpotify(context, uri, "無法連線 Spotify（${error.message ?: error.javaClass.simpleName}），已開啟歌單頁"))
+        val done = AtomicBoolean(false)
+        var remoteRef: SpotifyAppRemote? = null
+        fun finish(build: () -> Outcome) {
+            if (!done.compareAndSet(false, true)) return
+            main.post {
+                main.removeCallbacksAndMessages(null)
+                remoteRef?.let { SpotifyAppRemote.disconnect(it) }
+                onResult(build())
             }
-        })
+        }
+        main.postDelayed({
+            finish { openInSpotify(context, uri, "Spotify 沒有回應，已開啟歌單頁，請按播放") }
+        }, TIMEOUT_MS)
+
+        try {
+            val params = ConnectionParams.Builder(settings.spotifyClientId)
+                .setRedirectUri(REDIRECT_URI)
+                .showAuthView(true)
+                .build()
+            Log.d(TAG, "connect")
+            SpotifyAppRemote.connect(context, params, object : Connector.ConnectionListener {
+                override fun onConnected(remote: SpotifyAppRemote) {
+                    Log.d(TAG, "connected")
+                    remoteRef = remote
+                    remote.playerApi.setShuffle(settings.shuffle)
+                    remote.playerApi.play(uri)
+                        .setResultCallback {
+                            Log.d(TAG, "play ok")
+                            finish { Outcome.Playing }
+                        }
+                        .setErrorCallback { error ->
+                            Log.d(TAG, "play error", error)
+                            finish {
+                                openInSpotify(context, uri, "無法直接播放（${describe(error)}），已開啟 Spotify 歌單")
+                            }
+                        }
+                }
+
+                override fun onFailure(error: Throwable) {
+                    Log.d(TAG, "connect failed", error)
+                    finish {
+                        openInSpotify(context, uri, "無法連線 Spotify（${describe(error)}），已開啟歌單頁")
+                    }
+                }
+            })
+        } catch (e: Exception) {
+            Log.d(TAG, "connect threw", e)
+            finish { openInSpotify(context, uri, "無法連線 Spotify（${describe(e)}），已開啟歌單頁") }
+        }
     }
+
+    private fun describe(error: Throwable): String =
+        error.javaClass.simpleName + (error.message?.let { ": $it" } ?: "")
 
     private fun openInSpotify(context: Context, playlistUri: String, reason: String): Outcome {
         val app = context.applicationContext

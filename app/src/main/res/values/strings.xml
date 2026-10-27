@@ -17,7 +17,8 @@
     <string name="music_ask_text_shuffle">會播放你在設定裡選好的歌單，並開啟隨機播放。</string>
     <string name="music_play">播放並開始</string>
     <string name="music_skip">不播放，直接開始</string>
-    <string name="music_playing">已請 Spotify 播放歌單</string>
+    <string name="music_playing">已請 Spotify 播放歌單（如果沒聲音，請確認歌單裡有歌）</string>
+    <string name="music_connecting">正在連線 Spotify…</string>
 
     <string name="settings_title">設定</string>
     <string name="settings_music_section">運動音樂（Spotify）</string>
