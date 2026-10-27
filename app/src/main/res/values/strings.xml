@@ -31,6 +31,7 @@
     <string name="workout_paused">已暫停</string>
     <string name="workout_total_time">整段運動</string>
     <string name="workout_jog_time">超慢跑</string>
+    <string name="mascot_hint">點一下小人物可以換視角</string>
     <string name="jog_start">開始超慢跑</string>
     <string name="jog_end">結束超慢跑</string>
     <string name="workout_pause">暫停</string>

@@ -2,19 +2,15 @@ package com.cornming.slowjog.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,8 +27,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -64,8 +58,6 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
             flash.animateTo(0f, animationSpec = tween(durationMillis = 180))
         }
     }
-    val flashColor = MaterialTheme.colorScheme.primary
-    val baseColor = MaterialTheme.colorScheme.surfaceVariant
 
     Column(
         modifier = modifier
@@ -96,23 +88,29 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
             Text(text = formatClock(jog), style = MaterialTheme.typography.headlineMedium)
         }
 
-        Box(
-            modifier = Modifier
-                .size(140.dp)
-                .clip(CircleShape)
-                .background(baseColor)
-                .drawBehind { drawRect(flashColor.copy(alpha = flash.value * 0.6f)) },
-            contentAlignment = Alignment.Center,
+        MascotView(
+            jogging = workout.jogging && workout.running,
+            jogSec = jog,
+            bpm = metronome.bpm,
+            beat = metronome.beat,
+            flashAlpha = flash.value,
+        )
+        Text(
+            text = stringResource(R.string.mascot_hint),
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = metronome.bpm.toString(), fontSize = 40.sp, style = MaterialTheme.typography.displaySmall)
-                Text(text = stringResource(R.string.bpm_unit), style = MaterialTheme.typography.titleSmall)
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { MetronomeController.setBpm(metronome.bpm - 1) }) {
                 Text(stringResource(R.string.bpm_minus))
             }
+            Text(
+                text = "${metronome.bpm} ${stringResource(R.string.bpm_unit)}",
+                style = MaterialTheme.typography.titleLarge,
+            )
             OutlinedButton(onClick = { MetronomeController.setBpm(metronome.bpm + 1) }) {
                 Text(stringResource(R.string.bpm_plus))
             }

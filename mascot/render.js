@@ -1,6 +1,6 @@
 // 把小人物轉成多角度、多影格的透明背景 PNG 影格表。
 // 用法：cd mascot && npm install && node render.js
-// 輸出：sheets/mascot_v<角度>.png，每張 6 欄 x 2 列 = 12 格，一格 384 x 480。
+// 輸出：app/src/main/res/drawable-nodpi/mascot_v<角度>.png，每張 6 欄 x 2 列 = 12 格，一格 384 x 480。
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -56,7 +56,7 @@ const FW = 384, FH = 480, COLS = 6, ROWS = 2;
   }, { FW, FH });
   for (const deg of ANGLES) {
     const url = await page.evaluate(([d, f, c]) => window.renderSheet(d, f, c), [deg, FRAMES, COLS]);
-    const file = path.join(__dirname, 'sheets', 'mascot_v' + String(deg).padStart(3, '0') + '.png');
+    const file = path.join(__dirname, '..', 'app', 'src', 'main', 'res', 'drawable-nodpi', 'mascot_v' + String(deg).padStart(3, '0') + '.png');
     fs.writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
     console.log('wrote', path.relative(process.cwd(), file));
   }
