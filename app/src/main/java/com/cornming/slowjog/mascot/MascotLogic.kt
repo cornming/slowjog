@@ -1,18 +1,7 @@
 package com.cornming.slowjog.mascot
 
-import kotlin.math.abs
-
-/** 小人物的視角、影格與鼓勵氣泡的規則。純 Kotlin，有單元測試。 */
+/** 小人物的跑步影格與鼓勵氣泡的規則。純 Kotlin，有單元測試。 */
 object MascotLogic {
-
-    /** 視角循環：正面 → 45 度側面 → 90 度側面 → 另一側 45 度（負值為左右鏡像）。 */
-    val VIEW_ANGLES = listOf(0, 45, 90, -45)
-
-    /** 影格表的角度間隔。 */
-    const val ANGLE_STEP = 15
-
-    /** 每隔多少秒的超慢跑時間轉換一次視角。 */
-    const val VIEW_PERIOD_SEC = 300
 
     /** 一個步伐循環共 12 格，對應 2 拍。 */
     const val FRAMES_PER_BEAT = 6
@@ -33,28 +22,6 @@ object MascotLogic {
         "每一步都算數！",
         "節拍 {bpm}，我們同步囉！",
     )
-
-    /** 依超慢跑時間決定目前視角；manualOffset 是使用者點小人物手動多換的次數。 */
-    fun viewIndex(jogSec: Int, manualOffset: Int = 0): Int =
-        Math.floorMod(jogSec / VIEW_PERIOD_SEC + manualOffset, VIEW_ANGLES.size)
-
-    /** 從 from 轉到 to 要依序經過的影格表角度（不含 from，含 to），每 15 度一格。 */
-    fun anglePath(from: Int, to: Int): List<Int> {
-        if (from == to) return emptyList()
-        val step = if (to > from) ANGLE_STEP else -ANGLE_STEP
-        val out = ArrayList<Int>()
-        var a = from
-        while (a != to) {
-            a += step
-            out.add(a)
-        }
-        return out
-    }
-
-    /** 影格表檔案用的角度（0 到 90）。 */
-    fun sheetAngle(angle: Int): Int = abs(angle)
-
-    fun isMirrored(angle: Int): Boolean = angle < 0
 
     /**
      * 目前該畫第幾格（0 到 11）。第 0 與第 6 格是腳落地，對齊節拍：

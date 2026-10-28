@@ -1,5 +1,9 @@
 package com.cornming.slowjog.settings
 
+import com.cornming.slowjog.mascot.MascotStyle
+import com.cornming.slowjog.scenery.Scene
+import com.cornming.slowjog.scenery.ScenePref
+import com.cornming.slowjog.ui.AppTheme
 import android.content.Context
 import android.content.SharedPreferences
 import com.cornming.slowjog.data.Habit
@@ -50,6 +54,14 @@ data class Settings(
     val voiceEnabled: Boolean = true,
     /** 階段結束前倒數 5 秒，時間到自動開始或停止超慢跑、進入下一階段。 */
     val planAutoEnabled: Boolean = true,
+    /** 介面風格。 */
+    val appTheme: AppTheme = AppTheme.SUNRISE,
+    /** 陪跑小人物的外型。 */
+    val mascotStyle: MascotStyle = MascotStyle.BLUE,
+    /** 跑步時的風景（固定一種或每天輪換）。 */
+    val scenePref: ScenePref = ScenePref.Fixed(Scene.RIVERSIDE),
+    /** 風景是否跟著跑步捲動。 */
+    val sceneryMoving: Boolean = true,
 ) {
     fun target(): Target = Target(targetType, targetMinutes, targetDistanceM)
 
@@ -82,6 +94,10 @@ object AppSettings {
     private const val KEY_CUES = "cuesEnabled"
     private const val KEY_VOICE = "voiceEnabled"
     private const val KEY_PLAN_AUTO = "planAutoEnabled"
+    private const val KEY_THEME = "appTheme"
+    private const val KEY_MASCOT = "mascotStyle"
+    private const val KEY_SCENE = "scenePref"
+    private const val KEY_SCENE_MOVING = "sceneryMoving"
 
     private var prefs: SharedPreferences? = null
     private val _settings = MutableStateFlow(Settings())
@@ -119,6 +135,10 @@ object AppSettings {
             cuesEnabled = p.getBoolean(KEY_CUES, true),
             voiceEnabled = p.getBoolean(KEY_VOICE, true),
             planAutoEnabled = p.getBoolean(KEY_PLAN_AUTO, true),
+            appTheme = AppTheme.fromId(p.getString(KEY_THEME, null)),
+            mascotStyle = MascotStyle.fromId(p.getString(KEY_MASCOT, null)),
+            scenePref = ScenePref.fromId(p.getString(KEY_SCENE, null)),
+            sceneryMoving = p.getBoolean(KEY_SCENE_MOVING, true),
         )
     }
 
@@ -146,6 +166,26 @@ object AppSettings {
     fun setCuesEnabled(value: Boolean) {
         prefs?.edit()?.putBoolean(KEY_CUES, value)?.apply()
         _settings.value = _settings.value.copy(cuesEnabled = value)
+    }
+
+    fun setAppTheme(value: AppTheme) {
+        prefs?.edit()?.putString(KEY_THEME, value.id)?.apply()
+        _settings.value = _settings.value.copy(appTheme = value)
+    }
+
+    fun setMascotStyle(value: MascotStyle) {
+        prefs?.edit()?.putString(KEY_MASCOT, value.id)?.apply()
+        _settings.value = _settings.value.copy(mascotStyle = value)
+    }
+
+    fun setScenePref(value: ScenePref) {
+        prefs?.edit()?.putString(KEY_SCENE, value.id)?.apply()
+        _settings.value = _settings.value.copy(scenePref = value)
+    }
+
+    fun setSceneryMoving(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_SCENE_MOVING, value)?.apply()
+        _settings.value = _settings.value.copy(sceneryMoving = value)
     }
 
     fun setPlanAutoEnabled(value: Boolean) {

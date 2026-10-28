@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +38,8 @@ import com.cornming.slowjog.ui.HistoryScreen
 import com.cornming.slowjog.ui.HomeScreen
 import com.cornming.slowjog.ui.SettingsScreen
 import com.cornming.slowjog.ui.SlowJogTheme
+import com.cornming.slowjog.ui.AppIcons
+import com.cornming.slowjog.ui.LocalPalette
 import com.cornming.slowjog.ui.WorkoutScreen
 import com.cornming.slowjog.workout.WorkoutController
 
@@ -48,7 +52,8 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
         enableEdgeToEdge()
         setContent {
-            SlowJogTheme {
+            val settings by AppSettings.settings.collectAsStateWithLifecycle()
+            SlowJogTheme(settings.appTheme) {
                 AppRoot()
             }
         }
@@ -104,26 +109,38 @@ private fun AppRoot() {
     if (workout.active) {
         WorkoutScreen()
     } else {
+        val palette = LocalPalette.current
+        val itemColors = NavigationBarItemDefaults.colors(
+            selectedIconColor = palette.accentText,
+            selectedTextColor = palette.accentText,
+            indicatorColor = palette.accentSoft,
+            unselectedIconColor = palette.inkSoft,
+            unselectedTextColor = palette.inkSoft,
+        )
         Scaffold(
+            containerColor = palette.bg,
             bottomBar = {
-                NavigationBar {
+                NavigationBar(containerColor = palette.surface) {
                     NavigationBarItem(
                         selected = tab == 0,
                         onClick = { tab = 0 },
-                        icon = {},
+                        icon = { Icon(AppIcons.Home, contentDescription = null) },
                         label = { Text(stringResource(R.string.tab_home)) },
+                        colors = itemColors,
                     )
                     NavigationBarItem(
                         selected = tab == 1,
                         onClick = { tab = 1 },
-                        icon = {},
+                        icon = { Icon(AppIcons.Calendar, contentDescription = null) },
                         label = { Text(stringResource(R.string.tab_history)) },
+                        colors = itemColors,
                     )
                     NavigationBarItem(
                         selected = tab == 2,
                         onClick = { tab = 2 },
-                        icon = {},
+                        icon = { Icon(AppIcons.Sliders, contentDescription = null) },
                         label = { Text(stringResource(R.string.tab_settings)) },
+                        colors = itemColors,
                     )
                 }
             },

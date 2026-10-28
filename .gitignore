@@ -11,3 +11,4 @@
 *.apk
 *.aab
 mascot/node_modules/
+mascot/out/
