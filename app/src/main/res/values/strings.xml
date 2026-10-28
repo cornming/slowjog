@@ -92,11 +92,12 @@
 
     <string name="settings_title">設定</string>
     <string name="settings_music_section">運動音樂（Spotify）</string>
-    <string name="settings_playlist_label">Spotify 歌單連結</string>
+    <string name="settings_playlist_label">Spotify 歌單連結（一行一個）</string>
     <string name="settings_playlist_empty">尚未設定，開始運動時不會詢問音樂</string>
-    <string name="settings_playlist_ok">已設定歌單</string>
-    <string name="settings_playlist_bad">不是 Spotify 歌單連結</string>
-    <string name="settings_playlist_help">在 Spotify 打開歌單，按「分享」再「複製連結」，貼到上面。想要 AI 幫你建一份超慢跑歌單，回到 Claude 對話請它建立，再把連結貼過來。</string>
+    <string name="settings_playlist_one">已設定 1 個歌單；再多貼幾個，每次運動就會換不一樣的</string>
+    <string name="settings_playlist_many">已設定 %1$d 個歌單，每次開始運動隨機挑一個，不會連續兩次一樣</string>
+    <string name="settings_playlist_bad">有 %1$d 項不是 Spotify 歌單連結，已略過</string>
+    <string name="settings_playlist_help">在 Spotify 打開歌單，按「分享」再「複製連結」，貼到上面。可以貼好幾個，一行一個。想要 AI 幫你建超慢跑歌單，回到 Claude 對話請它建立（可以一次建好幾份），再把連結貼過來。</string>
     <string name="settings_mode_title">開始運動時</string>
     <string name="settings_mode_ask">每次詢問是否開啟歌單</string>
     <string name="settings_mode_always">自動開啟歌單，不詢問</string>

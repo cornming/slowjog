@@ -16,8 +16,10 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class MusicMode { ASK, ALWAYS, NEVER }
 
 data class Settings(
-    /** `spotify:playlist:<id>`；未設定為 null。 */
-    val playlistUri: String? = null,
+    /** 歌單清單（每筆 `spotify:playlist:<id>`）；每次運動隨機挑一個，不會連續兩次一樣。 */
+    val playlistUris: List<String> = emptyList(),
+    /** 上一次放的歌單，下次避開。 */
+    val lastPlaylistUri: String? = null,
     val musicMode: MusicMode = MusicMode.ASK,
     /** 目標的種類：整段運動時間，或超慢跑的估算距離。 */
     val targetType: TargetType = TargetType.TIME,
@@ -57,7 +59,9 @@ data class Settings(
 /** 設定都存在本機的 SharedPreferences。 */
 object AppSettings {
     private const val FILE = "settings"
-    private const val KEY_PLAYLIST = "playlistUri"
+    private const val KEY_PLAYLIST = "playlistUri" // 舊版只有一個歌單
+    private const val KEY_PLAYLISTS = "playlistUris"
+    private const val KEY_LAST_PLAYLIST = "lastPlaylistUri"
     private const val KEY_MODE = "musicMode"
     private const val KEY_TARGET_TYPE = "targetType"
     private const val KEY_TARGET = "targetMinutes"
@@ -88,7 +92,9 @@ object AppSettings {
         val p = context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
         prefs = p
         _settings.value = Settings(
-            playlistUri = p.getString(KEY_PLAYLIST, null),
+            playlistUris = (p.getString(KEY_PLAYLISTS, null) ?: p.getString(KEY_PLAYLIST, null))
+                ?.split('\n')?.filter { it.isNotBlank() }.orEmpty(),
+            lastPlaylistUri = p.getString(KEY_LAST_PLAYLIST, null),
             musicMode = runCatching { MusicMode.valueOf(p.getString(KEY_MODE, null).orEmpty()) }
                 .getOrDefault(MusicMode.ASK),
             targetType = runCatching { TargetType.valueOf(p.getString(KEY_TARGET_TYPE, null).orEmpty()) }
@@ -177,9 +183,14 @@ object AppSettings {
         prefs?.edit()?.putBoolean(KEY_NOTIFICATION_ASKED, true)?.apply()
     }
 
-    fun setPlaylistUri(value: String?) {
-        prefs?.edit()?.apply { if (value == null) remove(KEY_PLAYLIST) else putString(KEY_PLAYLIST, value) }?.apply()
-        _settings.value = _settings.value.copy(playlistUri = value)
+    fun setPlaylistUris(value: List<String>) {
+        prefs?.edit()?.putString(KEY_PLAYLISTS, value.joinToString("\n"))?.remove(KEY_PLAYLIST)?.apply()
+        _settings.value = _settings.value.copy(playlistUris = value)
+    }
+
+    fun setLastPlaylist(value: String?) {
+        prefs?.edit()?.apply { if (value == null) remove(KEY_LAST_PLAYLIST) else putString(KEY_LAST_PLAYLIST, value) }?.apply()
+        _settings.value = _settings.value.copy(lastPlaylistUri = value)
     }
 
     fun setMusicMode(value: MusicMode) {

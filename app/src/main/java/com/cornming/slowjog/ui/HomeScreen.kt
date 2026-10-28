@@ -49,6 +49,7 @@ import com.cornming.slowjog.metronome.MetronomeEngine
 import com.cornming.slowjog.metronome.TapTempo
 import com.cornming.slowjog.settings.AppSettings
 import com.cornming.slowjog.settings.MusicMode
+import com.cornming.slowjog.spotify.SpotifyLink
 import com.cornming.slowjog.spotify.SpotifyPlayer
 import com.cornming.slowjog.workout.Distance
 import com.cornming.slowjog.workout.TargetType
@@ -76,7 +77,9 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     fun startWorkout(playMusic: Boolean) {
         WorkoutController.start(context, musicRequested = playMusic)
         if (playMusic) {
-            val message = when (val outcome = SpotifyPlayer.open(context, settings.playlistUri)) {
+            val playlist = SpotifyLink.pick(settings.playlistUris, settings.lastPlaylistUri, kotlin.random.Random.nextDouble())
+            AppSettings.setLastPlaylist(playlist)
+            val message = when (val outcome = SpotifyPlayer.open(context, playlist)) {
                 is SpotifyPlayer.Outcome.Opened -> context.getString(R.string.music_opened)
                 is SpotifyPlayer.Outcome.OpenedInBrowser -> context.getString(R.string.music_opened_browser)
                 is SpotifyPlayer.Outcome.Failed -> outcome.reason
@@ -88,7 +91,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     // 按下「開始運動」，依音樂設定決定直接開始或先詢問。
     fun onStartClicked() {
         when {
-            settings.playlistUri == null || settings.musicMode == MusicMode.NEVER -> startWorkout(false)
+            settings.playlistUris.isEmpty() || settings.musicMode == MusicMode.NEVER -> startWorkout(false)
             settings.musicMode == MusicMode.ALWAYS -> startWorkout(true)
             else -> askMusic = true
         }

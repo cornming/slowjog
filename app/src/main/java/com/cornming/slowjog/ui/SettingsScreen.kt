@@ -59,10 +59,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val settings by AppSettings.settings.collectAsStateWithLifecycle()
     var linkText by remember {
-        mutableStateOf(settings.playlistUri?.let { SpotifyLink.webUrl(it) }.orEmpty())
+        mutableStateOf(settings.playlistUris.joinToString("\n") { SpotifyLink.webUrl(it) })
     }
-    val parsed = SpotifyLink.parsePlaylist(linkText)
-    val linkBad = linkText.isNotBlank() && parsed == null
+    val (parsedPlaylists, badCount) = SpotifyLink.parsePlaylists(linkText)
+    val linkBad = badCount > 0
     var testStatus by remember { mutableStateOf<String?>(null) }
 
     Column(
@@ -234,23 +234,19 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             value = linkText,
             onValueChange = {
                 linkText = it
-                when {
-                    it.isBlank() -> AppSettings.setPlaylistUri(null)
-                    else -> SpotifyLink.parsePlaylist(it)?.let { uri -> AppSettings.setPlaylistUri(uri) }
-                }
+                AppSettings.setPlaylistUris(SpotifyLink.parsePlaylists(it).first)
             },
             label = { Text(stringResource(R.string.settings_playlist_label)) },
-            singleLine = true,
+            minLines = 3,
             isError = linkBad,
             supportingText = {
                 Text(
-                    stringResource(
-                        when {
-                            linkText.isBlank() -> R.string.settings_playlist_empty
-                            linkBad -> R.string.settings_playlist_bad
-                            else -> R.string.settings_playlist_ok
-                        },
-                    ),
+                    when {
+                        linkBad -> stringResource(R.string.settings_playlist_bad, badCount)
+                        parsedPlaylists.isEmpty() -> stringResource(R.string.settings_playlist_empty)
+                        parsedPlaylists.size == 1 -> stringResource(R.string.settings_playlist_one)
+                        else -> stringResource(R.string.settings_playlist_many, parsedPlaylists.size)
+                    },
                 )
             },
         )
@@ -271,9 +267,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),
-            enabled = settings.playlistUri != null,
+            enabled = settings.playlistUris.isNotEmpty(),
             onClick = {
-                testStatus = when (val outcome = SpotifyPlayer.open(context, settings.playlistUri)) {
+                val playlist = SpotifyLink.pick(settings.playlistUris, settings.lastPlaylistUri, kotlin.random.Random.nextDouble())
+                AppSettings.setLastPlaylist(playlist)
+                testStatus = when (val outcome = SpotifyPlayer.open(context, playlist)) {
                     is SpotifyPlayer.Outcome.Opened -> context.getString(R.string.music_opened)
                     is SpotifyPlayer.Outcome.OpenedInBrowser -> context.getString(R.string.music_opened_browser)
                     is SpotifyPlayer.Outcome.Failed -> outcome.reason
