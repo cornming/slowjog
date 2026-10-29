@@ -12,9 +12,9 @@ class MoveScheduleTest {
     private fun min(m: Int) = m * 60_000L
 
     @Test
-    fun onlyWarmupAndCooldownHaveMoves() {
+    fun everyStageExceptJogHasMoves() {
         assertTrue(MoveSchedule.movesFor(StageKind.JOG).isEmpty())
-        assertTrue(MoveSchedule.movesFor(StageKind.STRENGTH).isEmpty())
+        assertEquals(5, MoveSchedule.movesFor(StageKind.STRENGTH).size)
         assertEquals(4, MoveSchedule.movesFor(StageKind.WARMUP).size)
         assertEquals(5, MoveSchedule.movesFor(StageKind.COOLDOWN).size)
         assertNull(MoveSchedule.at(StageKind.JOG, min(15), 1_000))
@@ -116,5 +116,20 @@ class MoveScheduleTest {
             assertTrue(m.cycleSec > 0f)
         }
         assertEquals(Move.values().map { it.id }.toSet().size, Move.values().size)
+    }
+
+    @Test
+    fun defaultStrengthStageDoesFiveMovesOf72Seconds() {
+        assertEquals(5, MoveSchedule.count(StageKind.STRENGTH, min(6)))
+        assertEquals(Move.DEEP_SQUAT, MoveSchedule.at(StageKind.STRENGTH, min(6), 71_999)?.move)
+        assertEquals(Move.LUNGE, MoveSchedule.at(StageKind.STRENGTH, min(6), 72_000)?.move)
+        assertEquals(Move.SIDE_LEG, MoveSchedule.at(StageKind.STRENGTH, min(6), min(6) - 1)?.move)
+    }
+
+    @Test
+    fun lungeSwitchesLegsEveryCycle() {
+        // 弓箭步一個循環 3 秒，從 72 秒開始
+        assertFalse(MoveSchedule.at(StageKind.STRENGTH, min(6), 72_000 + 1_000)!!.mirrored)
+        assertTrue(MoveSchedule.at(StageKind.STRENGTH, min(6), 72_000 + 4_000)!!.mirrored)
     }
 }

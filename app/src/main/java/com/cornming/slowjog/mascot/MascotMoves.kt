@@ -20,6 +20,12 @@ enum class Move(
     TWIST("twist", "轉體", "雙手打開，腰帶著上身左右轉。", 2.4f, false),
     SQUAT("squat", "屈膝半蹲", "屁股往後坐，雙手往前伸，蹲到舒服的深度就好。", 4.0f, false),
 
+    DEEP_SQUAT("deepsquat", "深蹲", "屁股往後坐，膝蓋和腳尖同方向，雙手往前伸保持平衡。", 3.0f, false),
+    LUNGE("lunge", "原地弓箭步", "一腳在前，後膝慢慢往下沉，上身保持直立，左右輪流。", 3.0f, true),
+    CALF_RAISE("calfraise", "提踵", "雙腳踮起再慢慢放下，感覺小腿出力。", 2.0f, false),
+    KNEE_ELBOW("kneeelbow", "抬膝碰肘", "雙手扶頭，抬膝時上身轉向膝蓋，左右輪流。", 2.4f, false),
+    SIDE_LEG("sideleg", "側抬腿", "身體站穩，單腳往側邊抬起再放下，左右輪流。", 2.4f, false),
+
     CALF("calf", "小腿伸展", "後腳跟貼地，雙手往前推，感覺小腿拉長，左右都做。", 16f, true),
     QUAD("quad", "大腿前側伸展", "站穩，手抓同側腳踝往臀部靠，左右都做。", 16f, true),
     FORWARD("forward", "前彎伸展", "上身慢慢往前放鬆下垂，膝蓋不要鎖死。", 16f, false),
@@ -48,13 +54,15 @@ object MoveSchedule {
     const val MIN_SLOT_MS = 30_000L
 
     val WARMUP_MOVES = listOf(Move.MARCH, Move.ARM_CIRCLE, Move.TWIST, Move.SQUAT)
+    val STRENGTH_MOVES = listOf(Move.DEEP_SQUAT, Move.LUNGE, Move.CALF_RAISE, Move.KNEE_ELBOW, Move.SIDE_LEG)
     val STRETCH_MOVES = listOf(Move.CALF, Move.QUAD, Move.FORWARD, Move.SIDEBEND, Move.CROSSARM)
 
-    /** 暖身與收操（伸展）階段才有動作，其他階段回傳空。 */
+    /** 暖身、肌力訓練與伸展階段的動作；超慢跑階段沒有（小人物跑步）。 */
     fun movesFor(kind: StageKind): List<Move> = when (kind) {
         StageKind.WARMUP -> WARMUP_MOVES
+        StageKind.STRENGTH -> STRENGTH_MOVES
         StageKind.COOLDOWN -> STRETCH_MOVES
-        else -> emptyList()
+        StageKind.JOG -> emptyList()
     }
 
     /** 這個階段會做幾個動作：每個至少 [MIN_SLOT_MS]，最多把清單做完。 */

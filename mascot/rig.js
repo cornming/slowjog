@@ -74,7 +74,8 @@ const STYLES = {
   blue: { skin: 0xffd6b3, hair: 0x3a2b26, shirt: 0x1e7fd6, shorts: 0x2c3a4d, shoe: 0xff7a3d, limb: 0xffd6b3, head: 'kid', toon: false },
   orange: { skin: 0xf5c9a0, hair: 0x2b2b3a, shirt: 0xf2683c, shorts: 0x2c3a4d, shoe: 0xffffff, limb: 0xf5c9a0, head: 'ponytail', toon: true },
   pixel: { skin: 0xffd6b3, hair: 0x3a2b26, shirt: 0x1e7fd6, shorts: 0x2c3a4d, shoe: 0xff7a3d, limb: 0xffd6b3, head: 'kid', toon: false, flat: true, pixel: 6 },
-  shiba: { skin: 0xd9772e, hair: 0xd9772e, shirt: 0xd9772e, shorts: 0xd9772e, shoe: 0x1e7fd6, limb: 0xd9772e, head: 'shiba', toon: true, cream: 0xfff1df, band: 0x1e7fd6 },
+  // 阿柴穿運動服：T 恤、短褲、頭帶，手是白色肉球，看起來像擬人的狗狗跑者
+  shiba: { skin: 0xd9772e, hair: 0xd9772e, shirt: 0x2a9d8f, shorts: 0x2c3a4d, shoe: 0xff7a3d, limb: 0xd9772e, hand: 0xfff1df, head: 'shiba', toon: true, cream: 0xfff1df, band: 0xe63946 },
 };
 
 function buildMascot(styleName) {
@@ -125,7 +126,7 @@ function buildMascot(styleName) {
   const body = capsule(0.3, 0.3, shirt);
   body.scale.set(1.08, 1, 0.9);
   torso.add(body);
-  if (st.cream) {
+  if (st.belly) {
     const belly = mesh(new THREE.SphereGeometry(0.22, 16, 12), M(st.cream), 0, -0.02, 0.17);
     belly.scale.set(1, 1.2, 0.55);
     torso.add(belly);
@@ -144,7 +145,7 @@ function buildMascot(styleName) {
     const fore = capsule(0.085, 0.3, limb);
     fore.position.y = -0.23;
     elbow.add(fore);
-    elbow.add(mesh(new THREE.SphereGeometry(0.1, 14, 10), limb, 0, -0.5, 0));
+    elbow.add(mesh(new THREE.SphereGeometry(st.hand ? 0.12 : 0.1, 14, 10), st.hand ? M(st.hand) : limb, 0, -0.5, 0));
     torso.add(shoulder);
     return { shoulder, elbow };
   };
@@ -192,10 +193,10 @@ function buildMascot(styleName) {
     const nose = mesh(new THREE.SphereGeometry(0.08, 12, 8), dark, 0, -0.1, 0.8);
     nose.scale.set(1.3, 0.9, 0.9);
     head.add(nose);
-    // 項圈掛在上身，前彎時才會跟著動
-    const collar = mesh(new THREE.TorusGeometry(0.3, 0.06, 8, 24), M(st.band), 0, 0.47, 0);
-    collar.rotation.x = Math.PI / 2;
-    torso.add(collar);
+    // 運動頭帶，繞在耳朵下方
+    const headband = mesh(new THREE.TorusGeometry(0.6, 0.06, 8, 32), M(st.band), 0, 0.28, -0.02);
+    headband.rotation.x = Math.PI / 2 - 0.25;
+    head.add(headband);
     // 捲尾巴當作會晃的 tuft，掛在臀部後面
     tuft.position.set(0, 1.25, -0.3);
     const tail = mesh(new THREE.TorusGeometry(0.13, 0.065, 8, 16, Math.PI * 1.5), hairM, 0, 0.1, -0.05);
@@ -227,7 +228,7 @@ function buildMascot(styleName) {
     eye.scale.set(1, 1.35, 0.6);
     head.add(eye);
     head.add(mesh(new THREE.SphereGeometry(0.022, 8, 6), white, sx * 0.22 + 0.02, eyeY + 0.04, 0.595));
-    if (st.head !== 'shiba') {
+    {
       const blush = mesh(new THREE.SphereGeometry(0.1, 12, 8), cheek, sx * 0.37, -0.1, 0.47);
       blush.scale.set(1, 0.6, 0.4);
       head.add(blush);

@@ -114,8 +114,9 @@ const FW = 384, FH = 480, COLS = 6;
       const { sheet, ctx } = sheetFor(frames, cols);
       aim(move.angle);
       for (let k = 0; k < frames; k++) {
-        applyPose(mascot, move.pose(k / frames));
-        groundFigure(mascot);
+        const ps = move.pose(k / frames);
+        applyPose(mascot, ps);
+        groundFigure(mascot, ps.lift || 0);
         shot(ctx, k);
       }
       return sheet.toDataURL('image/png');
