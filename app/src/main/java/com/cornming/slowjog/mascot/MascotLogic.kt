@@ -9,18 +9,41 @@ object MascotLogic {
     /** 氣泡停留秒數。 */
     const val BUBBLE_SHOW_SEC = 5
 
+    /** 超慢跑開始後多久說第一句鼓勵（太早會和「超慢跑開始」的語音撞在一起）。 */
+    const val FIRST_CHEER_JOG_SEC = 20
+
+    /** 階段快結束、要倒數的時候不說鼓勵（毫秒）。 */
+    const val NO_CHEER_BEFORE_STAGE_END_MS = 12_000L
+
+    /**
+     * 鼓勵的話。氣泡顯示文字，語音（設定可關）念同一句。
+     * 不放會變動的數字（例如節拍），這樣才能事先錄成語音檔。
+     */
     val MESSAGES = listOf(
-        "今天也出門了，很棒！",
-        "步子小小的，剛剛好。",
-        "慢到還能聊天，就是對的速度。",
-        "肩膀放鬆，嘴角上揚～",
-        "呼吸順順的，繼續保持。",
-        "跟著我的腳步，一二、一二～",
-        "不用追求快，穩穩地跑就好。",
-        "腳掌輕輕落地，像踩在雲上。",
-        "抬頭挺胸，看向遠方。",
-        "每一步都算數！",
-        "節拍 {bpm}，我們同步囉！",
+        "今天也出門了，你真的好棒！",
+        "步子小小的，剛剛好，繼續保持喔！",
+        "慢到還能聊天，就是對的速度！",
+        "肩膀放鬆，嘴角上揚，笑一個～",
+        "呼吸順順的，你做得超好！",
+        "跟著節拍，一二、一二，我們同步囉！",
+        "不用追求快，穩穩地跑就很厲害了！",
+        "腳掌輕輕落地，像踩在雲上一樣～",
+        "抬頭挺胸，看向遠方，帥呆了！",
+        "每一步都算數，你超讚的！",
+        "太棒了！你已經打敗賴床的自己了！",
+        "加油加油，再撐一下下，你可以的！",
+        "哇，你的節奏好穩，我都想跟著你跑了！",
+        "感覺到風了嗎？今天的早晨好舒服～",
+        "身體正在謝謝你喔，繼續保持！",
+        "慢慢來比較快，我們不急！",
+        "好帥好帥，這個姿勢滿分！",
+        "堅持下去，未來的你會謝謝現在的你！",
+        "手臂放鬆，輕輕擺動，跑起來好輕鬆～",
+        "你不是一個人，我陪你一起跑！",
+        "這就是自律的樣子，超酷的！",
+        "深呼吸，吸～吐～，節奏剛剛好！",
+        "再堅持一下，好心情就在前面等你！",
+        "今天的你，比昨天更棒一點點！",
     )
 
     /**
@@ -37,9 +60,9 @@ object MascotLogic {
     fun nextBubbleDelaySec(rand: Double): Int = 60 + (rand * 60).toInt().coerceIn(0, 59)
 
     /** 挑一則和上一則不同的鼓勵文字，回傳（索引, 文字）。 */
-    fun pickMessage(previous: Int, rand: Double, bpm: Int): Pair<Int, String> {
+    fun pickMessage(previous: Int, rand: Double): Pair<Int, String> {
         var i = (rand * MESSAGES.size).toInt().coerceIn(0, MESSAGES.size - 1)
         if (i == previous) i = (i + 1) % MESSAGES.size
-        return i to MESSAGES[i].replace("{bpm}", bpm.toString())
+        return i to MESSAGES[i]
     }
 }

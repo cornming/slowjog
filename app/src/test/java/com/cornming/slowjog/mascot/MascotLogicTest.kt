@@ -1,6 +1,7 @@
 package com.cornming.slowjog.mascot
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
@@ -31,15 +32,22 @@ class MascotLogicTest {
     @Test
     fun messageNeverRepeatsThePreviousOne() {
         for (prev in MascotLogic.MESSAGES.indices) {
-            val (index, _) = MascotLogic.pickMessage(prev, prev.toDouble() / MascotLogic.MESSAGES.size, 180)
+            val (index, _) = MascotLogic.pickMessage(prev, prev.toDouble() / MascotLogic.MESSAGES.size)
             assertNotEquals(prev, index)
         }
     }
 
     @Test
-    fun messageFillsInBpm() {
-        val last = MascotLogic.MESSAGES.indexOfFirst { it.contains("{bpm}") }
-        val (_, text) = MascotLogic.pickMessage(-1, (last + 0.5) / MascotLogic.MESSAGES.size, 172)
-        assertEquals("節拍 172，我們同步囉！", text)
+    fun messagesHaveNoVariablesSoTheyCanBePrerecorded() {
+        for (text in MascotLogic.MESSAGES) {
+            assertFalse(text, text.contains("{") || text.any { it.isDigit() })
+        }
+        assertEquals(MascotLogic.MESSAGES.size, MascotLogic.MESSAGES.toSet().size)
+    }
+
+    @Test
+    fun pickedMessageComesFromTheList() {
+        val (index, text) = MascotLogic.pickMessage(-1, 0.5)
+        assertEquals(MascotLogic.MESSAGES[index], text)
     }
 }

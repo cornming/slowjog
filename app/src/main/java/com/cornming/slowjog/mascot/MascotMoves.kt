@@ -45,7 +45,19 @@ data class MoveSlot(
     val mirrored: Boolean,
     /** 下一個動作；最後一個動作為 null。 */
     val next: Move?,
-)
+    /** 這個動作已經做完幾個循環（從 0 起）。 */
+    val cycle: Int = 0,
+    /** 目前這個循環已經過多久、整個循環多長（毫秒）。 */
+    val cycleElapsedMs: Long = 0,
+    val cycleMs: Long = 0,
+    /** 這個動作還剩多久（毫秒）；最後一個動作做到階段結束。 */
+    val slotRemainingMs: Long = 0,
+    /** 這個動作已經做了多久（毫秒）。 */
+    val slotElapsedMs: Long = 0,
+) {
+    /** 目前這個循環還剩多久（毫秒）。 */
+    val cycleRemainingMs: Long get() = (cycleMs - cycleElapsedMs).coerceAtLeast(0)
+}
 
 /** 暖身階段與伸展階段的動作輪替。純邏輯，有單元測試。 */
 object MoveSchedule {
@@ -90,6 +102,11 @@ object MoveSchedule {
             phase = phase,
             mirrored = move.alternatesSides && cycle % 2L == 1L,
             next = movesFor(kind).getOrNull(index + 1)?.takeIf { index + 1 < n },
+            cycle = cycle.toInt(),
+            cycleElapsedMs = within % cycleMs,
+            cycleMs = cycleMs,
+            slotRemainingMs = ((if (index == n - 1) stageMs else (index + 1) * slotMs) - elapsedMs).coerceAtLeast(0),
+            slotElapsedMs = within,
         )
     }
 

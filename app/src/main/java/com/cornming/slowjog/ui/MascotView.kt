@@ -47,6 +47,7 @@ import com.cornming.slowjog.mascot.MascotSheets
 import com.cornming.slowjog.mascot.MascotStyle
 import com.cornming.slowjog.mascot.MoveSchedule
 import com.cornming.slowjog.plan.StageKind
+import com.cornming.slowjog.workout.Cheer
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -70,6 +71,10 @@ fun MascotView(
     modifier: Modifier = Modifier,
     /** 暖身或伸展階段且沒在跑時，示範動作用的階段資訊。 */
     moveStage: MoveStage? = null,
+    /** 最新的一句鼓勵（由運動控制器決定說什麼、什麼時候說，語音也是它念），有新的一句就冒出氣泡。 */
+    cheer: Cheer? = null,
+    /** 點小人物時。 */
+    onTap: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val sheets = remember { MascotSheets(context) }
@@ -87,8 +92,8 @@ fun MascotView(
     val lastBeatAt = remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
     var bubble by remember { mutableStateOf<String?>(null) }
-    var lastMessage by remember { mutableIntStateOf(-1) }
-    var nextBubbleAtJog by remember { mutableIntStateOf(3) }
+    // 畫面剛出現時就存在的那一句是舊的，不要再冒一次氣泡。
+    var seenCheer by remember { mutableIntStateOf(cheer?.seq ?: 0) }
 
     // 每個畫面影格更新一次時鐘；只有繪製區讀取它，不會讓整個畫面重組。
     LaunchedEffect(Unit) {
@@ -120,13 +125,12 @@ fun MascotView(
         bubble = "${m.nameZh}：${m.tip}"
     }
 
-    // 超慢跑時間到了就冒出一則氣泡，之後每 1 到 2 分鐘一則。
-    LaunchedEffect(jogSec, runPose, running) {
-        if (runPose && running && jogSec >= nextBubbleAtJog) {
-            val (index, text) = MascotLogic.pickMessage(lastMessage, Random.nextDouble(), bpm)
-            lastMessage = index
-            bubble = text
-            nextBubbleAtJog = jogSec + MascotLogic.nextBubbleDelaySec(Random.nextDouble())
+    // 有新的一句鼓勵就冒出氣泡。
+    LaunchedEffect(cheer?.seq) {
+        val c = cheer ?: return@LaunchedEffect
+        if (c.seq != seenCheer) {
+            seenCheer = c.seq
+            bubble = c.text
         }
     }
     LaunchedEffect(bubble) {
@@ -142,11 +146,8 @@ fun MascotView(
         modifier = modifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
-        ) {
-            val (index, text) = MascotLogic.pickMessage(lastMessage, Random.nextDouble(), bpm)
-            lastMessage = index
-            bubble = text
-        },
+            onClick = onTap,
+        ),
         contentAlignment = Alignment.TopCenter,
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {

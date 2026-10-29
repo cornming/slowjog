@@ -63,6 +63,7 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val p = LocalPalette.current
     val workout by WorkoutController.state.collectAsStateWithLifecycle()
+    val cheer by WorkoutController.cheer.collectAsStateWithLifecycle()
     val metronome by MetronomeController.state.collectAsStateWithLifecycle()
     val settings by AppSettings.settings.collectAsStateWithLifecycle()
     val now = rememberNow()
@@ -194,6 +195,8 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
                 bpm = metronome.bpm,
                 beat = metronome.beat,
                 moveStage = moveStage,
+                cheer = cheer,
+                onTap = { WorkoutController.cheerNow(context) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 14.dp)
@@ -332,7 +335,7 @@ fun WorkoutScreen(modifier: Modifier = Modifier) {
     if (workout.targetPrompt) {
         AlertDialog(
             onDismissRequest = { WorkoutController.dismissTargetPrompt() },
-            title = { Text(stringResource(R.string.target_title)) },
+            title = { Text(stringResource(if (plan != null) R.string.plan_done_title else R.string.target_title)) },
             text = {
                 Text(
                     stringResource(

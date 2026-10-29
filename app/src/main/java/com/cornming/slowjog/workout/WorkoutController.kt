@@ -7,13 +7,20 @@ import com.cornming.slowjog.data.WorkoutRecord
 import com.cornming.slowjog.metronome.MetronomeController
 import com.cornming.slowjog.music.MusicControl
 import com.cornming.slowjog.plan.Announcements
+import com.cornming.slowjog.plan.PlanEnd
 import com.cornming.slowjog.plan.StageCue
 import com.cornming.slowjog.plan.StageTransition
 import com.cornming.slowjog.plan.WorkoutPlan
+import com.cornming.slowjog.mascot.CoachCue
+import com.cornming.slowjog.mascot.MascotLogic
+import com.cornming.slowjog.mascot.MoveCoach
 import com.cornming.slowjog.mascot.MoveSchedule
 import com.cornming.slowjog.voice.VoiceAnnouncer
+import com.cornming.slowjog.voice.VoiceLine
+import com.cornming.slowjog.voice.VoiceLines
 import com.cornming.slowjog.settings.AppSettings
-import com.cornming.slowjog.sound.CompletionChime
+import com.cornming.slowjog.sound.ChimeChoice
+import com.cornming.slowjog.sound.ChimeSounds
 import com.cornming.slowjog.sound.Tones
 import com.cornming.slowjog.widget.SlowJogWidget
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +37,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import kotlin.random.Random
+
+/** 超慢跑時冒出來的一句鼓勵。[seq] 每說一句加一，畫面靠它知道有新的一句。 */
+data class Cheer(val seq: Int, val text: String)
 
 /**
  * 一次運動的單一入口：整段運動計時、超慢跑階段（節拍器）、暫停與結束寫入紀錄。
@@ -49,6 +60,11 @@ object WorkoutController {
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
 
+    private val _cheer = MutableStateFlow<Cheer?>(null)
+
+    /** 最新的一句鼓勵；畫面顯示成小人物的氣泡，語音（設定可關）念同一句。 */
+    val cheer: StateFlow<Cheer?> = _cheer.asStateFlow()
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var startedAtWall = 0L
     private var target = Target(TargetType.TIME, 0, 0)
@@ -59,8 +75,15 @@ object WorkoutController {
     private var plan: WorkoutPlan? = null
     private var cues = true
     private var voice = true
+    private var coachVoice = true
+    private var cheerVoice = true
+    private var chimeChoice: ChimeChoice = ChimeChoice.Random
     private var lastStageIndex = -1
     private var lastMoveKey = -1
+    private var lastCoachKey = -1
+    private var lastCheerIndex = -1
+    private var nextCheerAtJogSec = MascotLogic.FIRST_CHEER_JOG_SEC
+    private var cheerSeq = 0
     private var autoAdvance = true
     private var lastCountdown = -1
     private var lastElapsedAnnounced = -1
@@ -121,8 +144,16 @@ object WorkoutController {
         plan = if (settings.planEnabled) settings.plan().takeIf { it.stages.isNotEmpty() } else null
         cues = settings.cuesEnabled
         voice = settings.voiceEnabled
+        coachVoice = settings.coachVoiceEnabled
+        cheerVoice = settings.cheerVoiceEnabled
+        chimeChoice = settings.chimeChoice
         lastStageIndex = -1
         lastMoveKey = -1
+        lastCoachKey = -1
+        lastCheerIndex = -1
+        nextCheerAtJogSec = MascotLogic.FIRST_CHEER_JOG_SEC
+        cheerSeq = 0
+        _cheer.value = null
         lastCountdown = -1
         autoAdvance = settings.planAutoEnabled && plan != null
         lastElapsedAnnounced = -1
@@ -152,12 +183,15 @@ object WorkoutController {
                         checkCountdown(app, elapsedMs)
                         checkStage(app, elapsedMs)
                         checkMove(app, elapsedMs)
+                        checkCoach(app, elapsedMs)
+                        checkCheer(app, now, elapsedMs)
                         checkElapsedVoice(app, elapsedMs)
                     }
-                    if (target.enabled && !targetReached &&
+                    // 有課表時，目標（時間或距離）要等課表全部做完才結算，否則會在肌力、伸展還沒做之前就結束。
+                    if (target.enabled && !targetReached && PlanEnd.targetCheckApplies(plan, elapsedMs) &&
                         target.isReached(elapsedMs, Distance.meters(steps, strideCm))
                     ) {
-                        onTargetReached(app)
+                        onGoalMet(app)
                     }
                 }
                 delay(200)
@@ -182,11 +216,10 @@ object WorkoutController {
         }
         if (stage != null) {
             StageCue.play(app, stage.kind, sound = cues, vibrate = cues)
-            if (voice) VoiceAnnouncer.speak(app, Announcements.stageStart(stage))
+            if (voice) VoiceAnnouncer.speak(app, VoiceLines.stage(stage))
         } else {
-            // 課表走完。有設目標時由「達成目標」負責響完成音效，避免重複。
-            if (!target.enabled && cues) CompletionChime.play()
-            if (voice) VoiceAnnouncer.speak(app, Announcements.PLAN_DONE)
+            // 課表全部做完才算結束：響完成音效、停節拍器與音樂、問要不要儲存。
+            if (!targetReached) onGoalMet(app, doneVoice = if (voice) VoiceLines.PLAN_DONE else null)
         }
     }
 
@@ -203,7 +236,7 @@ object WorkoutController {
         if (number == lastCountdown) return
         lastCountdown = number
         if (cues) Tones.play(Tones.beeps(1))
-        if (voice) VoiceAnnouncer.speak(app, StageTransition.spoken(number), flush = true)
+        if (voice) VoiceAnnouncer.speak(app, VoiceLines.count(number), flush = true)
     }
 
     /**
@@ -220,7 +253,50 @@ object WorkoutController {
         if (key == lastMoveKey) return
         lastMoveKey = key
         if (timer.jogging) return
-        VoiceAnnouncer.speak(app, Announcements.moveStart(slot.move))
+        VoiceAnnouncer.speak(app, VoiceLines.move(slot.move))
+    }
+
+    /**
+     * 做動作時的口令：停留型動作（伸展）每一側剩 10 秒提醒、最後 5 秒讀秒，左右分邊的從第二側起喊「換邊」；
+     * 反覆型動作（深蹲、抬膝）剩 30 秒、10 秒提醒，最後 5 秒讀秒。階段結束前已經有倒數時不重複喊。
+     */
+    private fun checkCoach(app: Context, elapsedMs: Long) {
+        if (!voice || !coachVoice || timer.jogging) return
+        val p = plan ?: return
+        val position = p.position(elapsedMs)
+        val stage = position.stage ?: return
+        if (autoAdvance && StageTransition.countdown(position.remainingMs, p.next(position.index) != null) != null) return
+        val slot = MoveSchedule.at(stage, stage.minutes * 60_000L - position.remainingMs) ?: return
+        val cue = MoveCoach.cueAt(slot) ?: return
+        val key = ((position.index * 100 + slot.index) * 1000 + slot.cycle) * 100 + cue.key
+        if (key == lastCoachKey) return
+        lastCoachKey = key
+        VoiceAnnouncer.speak(app, VoiceLines.coach(cue), flush = cue.kind == CoachCue.Kind.COUNT)
+    }
+
+    /** 超慢跑時每 1 到 2 分鐘說一句鼓勵：氣泡一定會出現，語音依設定。快到階段結束要倒數時先不說。 */
+    private fun checkCheer(app: Context, now: Long, elapsedMs: Long) {
+        if (!timer.jogging) return
+        val jogSec = (timer.jogMs(now) / 1000).toInt()
+        if (jogSec < nextCheerAtJogSec) return
+        val remainingMs = plan?.position(elapsedMs)?.remainingMs
+        if (autoAdvance && remainingMs != null && remainingMs in 1 until MascotLogic.NO_CHEER_BEFORE_STAGE_END_MS) return
+        sayCheer(app)
+        nextCheerAtJogSec = jogSec + MascotLogic.nextBubbleDelaySec(Random.nextDouble())
+    }
+
+    private fun sayCheer(app: Context) {
+        val (index, text) = MascotLogic.pickMessage(lastCheerIndex, Random.nextDouble())
+        lastCheerIndex = index
+        _cheer.value = Cheer(++cheerSeq, text)
+        if (voice && cheerVoice) VoiceAnnouncer.speak(app, VoiceLines.cheer(index))
+    }
+
+    /** 點小人物：馬上說一句鼓勵（氣泡加語音）。 */
+    @Synchronized
+    fun cheerNow(context: Context) {
+        if (!timer.started) return
+        sayCheer(context.applicationContext)
     }
 
     /** 每 5 分鐘念一次經過時間；剛好在階段交界附近就略過，因為階段播報已經說了。 */
@@ -228,10 +304,11 @@ object WorkoutController {
         if (!voice || !Announcements.shouldAnnounceElapsed(elapsedMs, lastElapsedAnnounced)) return
         lastElapsedAnnounced = (elapsedMs / 60_000L).toInt()
         if (plan?.isNearBoundary(elapsedMs, 1_500) == true) return
-        VoiceAnnouncer.speak(app, Announcements.elapsed(lastElapsedAnnounced))
+        VoiceAnnouncer.speak(app, VoiceLines.elapsed(lastElapsedAnnounced))
     }
 
-    private fun onTargetReached(app: Context) {
+    /** 這次運動算結束了（沒課表時達成目標，有課表時課表全部做完）：停節拍器與音樂、響完成音效、問要不要儲存。 */
+    private fun onGoalMet(app: Context, doneVoice: VoiceLine? = null) {
         targetReached = true
         targetPrompt = true
         if (autoStop) {
@@ -242,15 +319,22 @@ object WorkoutController {
             MusicControl.pause(app)
         }
         MusicControl.vibrateTimeUp(app)
-        playChimeSoon()
+        playChimeSoon(app, doneVoice)
         publish()
     }
 
-    /** 稍等一下再響：剛送出的「暫停」媒體鍵還需要一點時間生效，不然提示音會和歌混在一起。 */
-    private fun playChimeSoon() {
+    /**
+     * 稍等一下再響：剛送出的「暫停」媒體鍵還需要一點時間生效，不然提示音會和歌混在一起。
+     * 有 [then] 時，等完成音效響完再念，語音才不會被蓋過去。
+     */
+    private fun playChimeSoon(app: Context? = null, then: VoiceLine? = null) {
         scope.launch {
             delay(if (autoStop) 500 else 0)
-            CompletionChime.play()
+            val chimeMs = ChimeSounds.play(chimeChoice)
+            if (then != null && app != null) {
+                delay(chimeMs + 300)
+                VoiceAnnouncer.speak(app, then)
+            }
         }
     }
 

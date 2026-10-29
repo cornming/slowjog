@@ -20,6 +20,14 @@ object VoiceAnnouncer {
     private var counter = 0
     private val pending = ArrayDeque<String>()
 
+    /**
+     * 念一句固定的話：有預錄語音檔（assets/voice）就播檔案，沒有就用手機內建語音念 [VoiceLine.fallback]。
+     */
+    fun speak(context: Context, line: VoiceLine, flush: Boolean = false) {
+        if (VoiceClips.play(context, line.id, flush)) return
+        speak(context, line.fallback, flush)
+    }
+
     /** [flush] 為 true 時打斷正在念的話、馬上念這句（倒數用，數字才跟得上秒數）。 */
     @Synchronized
     fun speak(context: Context, text: String, flush: Boolean = false) {

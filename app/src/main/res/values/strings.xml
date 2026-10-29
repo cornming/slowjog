@@ -35,14 +35,18 @@
     <string name="workout_target_distance_done">已達目標 %1$s</string>
     <string name="workout_distance">估算距離 %1$s</string>
     <string name="target_title">達成目標！</string>
+    <string name="plan_done_title">課表完成！</string>
     <string name="target_text">整段 %1$s，超慢跑 %2$s，估算距離 %3$s。要儲存並結束這次運動嗎？</string>
     <string name="target_text_stopped">整段 %1$s，超慢跑 %2$s，估算距離 %3$s。節拍器與音樂已停止，要儲存並結束這次運動嗎？</string>
 
     <string name="settings_target_section">達成目標時</string>
-    <string name="settings_target_where">目標的時間或距離，請在首頁的「今日目標」設定。</string>
+    <string name="settings_target_where">目標的時間或距離，請在首頁的「今日目標」設定。啟用課表時，要等課表的每個階段都做完才算達成，不會在肌力訓練、伸展還沒做之前就結束。</string>
     <string name="settings_auto_stop">達成目標自動停止音樂與節拍器</string>
     <string name="settings_auto_stop_help">達成目標時會響起完成音效、震動三下；開啟這項時，還會用手機的媒體鍵暫停正在播放的音樂（Spotify 或其他音樂 App 都可以），不需要 Spotify 授權。完成音效的音量跟著手機的媒體音量。</string>
-    <string name="settings_chime_test">試聽完成音效</string>
+    <string name="settings_chime_title">完成音效</string>
+    <string name="settings_chime_random">每次隨機</string>
+    <string name="settings_chime_random_desc">每次運動完成換一種，不會連續兩次一樣</string>
+    <string name="settings_chime_help">點一下就會試聽。這些音效都是手機即時合成的，不是真人錄音，音量跟著媒體音量。</string>
     <string name="settings_stride_value">步幅：%1$d 公分</string>
     <string name="settings_stride_help">估算距離用。預設 50 公分只是起始值，不是量出來的。校正方法：在已知距離的路線（例如操場一圈）用超慢跑走完，數一下步數，步幅＝距離 ÷ 步數。</string>
 
@@ -73,9 +77,12 @@
     <string name="settings_auto_on">自動接續階段：結束前倒數 5 秒，自動開始或停止超慢跑</string>
     <string name="settings_cues_on">階段切換的提示音與震動</string>
     <string name="settings_voice_on">語音播報階段與經過時間</string>
+    <string name="settings_coach_voice_on">做動作時語音喊「換邊」與剩餘秒數</string>
+    <string name="settings_cheer_voice_on">超慢跑時用語音說出鼓勵的話</string>
+    <string name="settings_voice_clips_help">語音預設用手機內建的中文語音，聽起來比較機械。App 內附預錄的語音檔（例如用 AI Studio 產生的自然語音）時會優先播檔案，沒有檔案的句子才用手機語音。目前內附的語音檔：%1$d / %2$d 句。</string>
     <string name="settings_cue_test">試聽提示音</string>
     <string name="settings_voice_test">試念一句</string>
-    <string name="settings_plan_help">課表依「整段運動已過的時間」切換階段，暫停時不走；切換時用不同次數的嗶聲加震動提示（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、伸展 4 聲），語音另外每 5 分鐘念一次經過時間。暖身階段會依序做抬膝踏步、手臂繞圈、轉體、屈膝半蹲，肌力訓練階段做深蹲、原地弓箭步、提踵、抬膝碰肘、側抬腿，伸展階段依序做小腿、大腿前側、前彎、上舉側彎、肩膀伸展，小人物會在運動中畫面示範；階段分鐘設 0 就略過。「自動接續」開著時，每個階段結束前會倒數 5 秒（語音加嗶聲），暖身結束自動開始超慢跑、超慢跑結束自動停止並進入肌力訓練，再倒數進入伸展；關掉就只有階段提示，要自己按「開始超慢跑」。語音用手機內建的中文語音，沒有中文語音時不會出聲。提示音與語音的音量跟著媒體音量。</string>
+    <string name="settings_plan_help">課表依「整段運動已過的時間」切換階段，暫停時不走；切換時用不同次數的嗶聲加震動提示（暖身 1 聲、超慢跑 2 聲、肌力 3 聲、伸展 4 聲），語音另外每 5 分鐘念一次經過時間。暖身階段會依序做抬膝踏步、手臂繞圈、轉體、屈膝半蹲，肌力訓練階段做深蹲、原地弓箭步、提踵、抬膝碰肘、側抬腿，伸展階段依序做小腿、大腿前側、前彎、上舉側彎、肩膀伸展，小人物會在運動中畫面示範；階段分鐘設 0 就略過。「自動接續」開著時，每個階段結束前會倒數 5 秒（語音加嗶聲），暖身結束自動開始超慢跑、超慢跑結束自動停止並進入肌力訓練，再倒數進入伸展；關掉就只有階段提示，要自己按「開始超慢跑」。做動作時，語音會在停留型動作（伸展）每一側剩 10 秒提醒、最後 5 秒讀秒，左右分邊的動作換邊時喊「換邊」；反覆型動作（深蹲、抬膝等）剩 30 秒、10 秒提醒、最後 5 秒讀秒；超慢跑時每 1 到 2 分鐘會說一句鼓勵，點小人物也會說。這兩種語音可以分別關掉。語音沒有中文語音可用時不會出聲。提示音與語音的音量跟著媒體音量。</string>
     <string name="settings_sound_section">節拍音色</string>
     <string name="settings_sound_click">節拍器（答）</string>
     <string name="settings_sound_clap">拍手</string>

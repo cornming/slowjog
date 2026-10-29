@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.cornming.slowjog.data.Habit
 import com.cornming.slowjog.plan.WorkoutPlan
+import com.cornming.slowjog.sound.ChimeChoice
 import com.cornming.slowjog.sound.ClickSound
 import com.cornming.slowjog.workout.Distance
 import com.cornming.slowjog.workout.Target
@@ -50,8 +51,14 @@ data class Settings(
     val planCooldownMin: Int = WorkoutPlan.DEFAULT_COOLDOWN,
     /** 階段切換時的提示音與震動。 */
     val cuesEnabled: Boolean = true,
-    /** 語音播報階段與經過時間。 */
+    /** 語音播報階段與經過時間（也是下面兩種語音的總開關）。 */
     val voiceEnabled: Boolean = true,
+    /** 做動作時，語音喊「換邊」與還剩多久、最後 5 秒讀秒。 */
+    val coachVoiceEnabled: Boolean = true,
+    /** 超慢跑時，把氣泡裡的鼓勵用語音說出來。 */
+    val cheerVoiceEnabled: Boolean = true,
+    /** 運動完成的音效：固定一種，或每次隨機。 */
+    val chimeChoice: ChimeChoice = ChimeChoice.Random,
     /** 階段結束前倒數 5 秒，時間到自動開始或停止超慢跑、進入下一階段。 */
     val planAutoEnabled: Boolean = true,
     /** 介面風格。 */
@@ -93,6 +100,9 @@ object AppSettings {
     private const val KEY_PLAN_COOLDOWN = "planCooldownMin"
     private const val KEY_CUES = "cuesEnabled"
     private const val KEY_VOICE = "voiceEnabled"
+    private const val KEY_COACH_VOICE = "coachVoiceEnabled"
+    private const val KEY_CHEER_VOICE = "cheerVoiceEnabled"
+    private const val KEY_CHIME = "chimeChoice"
     private const val KEY_PLAN_AUTO = "planAutoEnabled"
     private const val KEY_THEME = "appTheme"
     private const val KEY_MASCOT = "mascotStyle"
@@ -134,6 +144,9 @@ object AppSettings {
             planCooldownMin = p.getInt(KEY_PLAN_COOLDOWN, WorkoutPlan.DEFAULT_COOLDOWN).coerceIn(0, 60),
             cuesEnabled = p.getBoolean(KEY_CUES, true),
             voiceEnabled = p.getBoolean(KEY_VOICE, true),
+            coachVoiceEnabled = p.getBoolean(KEY_COACH_VOICE, true),
+            cheerVoiceEnabled = p.getBoolean(KEY_CHEER_VOICE, true),
+            chimeChoice = ChimeChoice.fromId(p.getString(KEY_CHIME, null)),
             planAutoEnabled = p.getBoolean(KEY_PLAN_AUTO, true),
             appTheme = AppTheme.fromId(p.getString(KEY_THEME, null)),
             mascotStyle = MascotStyle.fromId(p.getString(KEY_MASCOT, null)),
@@ -196,6 +209,21 @@ object AppSettings {
     fun setVoiceEnabled(value: Boolean) {
         prefs?.edit()?.putBoolean(KEY_VOICE, value)?.apply()
         _settings.value = _settings.value.copy(voiceEnabled = value)
+    }
+
+    fun setCoachVoiceEnabled(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_COACH_VOICE, value)?.apply()
+        _settings.value = _settings.value.copy(coachVoiceEnabled = value)
+    }
+
+    fun setCheerVoiceEnabled(value: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_CHEER_VOICE, value)?.apply()
+        _settings.value = _settings.value.copy(cheerVoiceEnabled = value)
+    }
+
+    fun setChimeChoice(value: ChimeChoice) {
+        prefs?.edit()?.putString(KEY_CHIME, value.id)?.apply()
+        _settings.value = _settings.value.copy(chimeChoice = value)
     }
 
     fun setWeeklyTargetDays(value: Int) {

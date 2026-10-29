@@ -1,0 +1,30 @@
+# 預錄語音（自然語音）
+
+App 預設用手機內建的中文語音念，聽起來機械。App 也支援「預錄語音檔」：
+`app/src/main/assets/voice/<id>.wav` 有的句子就播檔案，沒有的句子才用手機語音，所以可以一句一句慢慢換，不會出錯。
+
+## 語音稿
+
+`script.csv` 是所有會念的話（目前 63 句，id 對應檔名）。它由程式裡的 `VoiceLines.catalog()` 決定，
+單元測試 `VoiceLinesTest.scriptFileMatchesTheCatalog` 會檢查兩邊一致：改了 App 裡的話，要同步改這個檔案。
+
+## 用 Google AI Studio 產生
+
+1. 到 <https://aistudio.google.com> 的 Get API key 申請金鑰（不要放進程式或 repo）。
+2. 在 repo 根目錄執行：
+
+   ```
+   export GEMINI_API_KEY=你的金鑰
+   python3 tools/voice/generate.py
+   ```
+
+3. 產生的檔案在 `app/src/main/assets/voice/`。逐句聽過，不滿意的刪掉再跑一次（已經有的檔案預設略過，`--force` 才重做）。
+4. 想換聲音：`--voice Zephyr`（文件標示明亮）、`Sadachbia`（活潑）、`Laomedeia`（輕快），預設是 `Puck`（輕快）。
+5. 提交並推送，CI 會把語音檔打包進 App；設定畫面會顯示「目前內附的語音檔：N / 63 句」。
+
+腳本會切掉每句前後的靜音（讀秒才不會慢半拍）並把音量統一。
+
+> 這支腳本照 Google 的文件（Interactions API）寫成，寫的時候沒有實際連到 Google 測過。
+> 如果執行失敗，錯誤訊息會印出 API 的回應，照著調整 `generate.py` 裡的 `build_body()` 與 `find_audio()`。
+
+檔案大小：24 kHz 單聲道 16 位元 wav，每秒約 48 KB，63 句約 7 到 10 MB。

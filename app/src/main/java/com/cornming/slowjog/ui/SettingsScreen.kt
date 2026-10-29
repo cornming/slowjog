@@ -45,7 +45,11 @@ import com.cornming.slowjog.sound.ClickSound
 import com.cornming.slowjog.sound.ClickSounds
 import com.cornming.slowjog.sound.Tones
 import com.cornming.slowjog.voice.VoiceAnnouncer
-import com.cornming.slowjog.sound.CompletionChime
+import com.cornming.slowjog.voice.VoiceClips
+import com.cornming.slowjog.voice.VoiceLines
+import com.cornming.slowjog.sound.ChimeChoice
+import com.cornming.slowjog.sound.ChimeKind
+import com.cornming.slowjog.sound.ChimeSounds
 import com.cornming.slowjog.spotify.SpotifyPlayer
 import com.cornming.slowjog.workout.Distance
 import kotlinx.coroutines.Dispatchers
@@ -149,6 +153,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         if (settings.planEnabled) SwitchRow(R.string.settings_auto_on, settings.planAutoEnabled) { AppSettings.setPlanAutoEnabled(it) }
         SwitchRow(R.string.settings_cues_on, settings.cuesEnabled) { AppSettings.setCuesEnabled(it) }
         SwitchRow(R.string.settings_voice_on, settings.voiceEnabled) { AppSettings.setVoiceEnabled(it) }
+        if (settings.voiceEnabled) {
+            SwitchRow(R.string.settings_coach_voice_on, settings.coachVoiceEnabled) { AppSettings.setCoachVoiceEnabled(it) }
+            SwitchRow(R.string.settings_cheer_voice_on, settings.cheerVoiceEnabled) { AppSettings.setCheerVoiceEnabled(it) }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 modifier = Modifier.weight(1f),
@@ -160,11 +168,17 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             OutlinedButton(
                 modifier = Modifier.weight(1f),
                 onClick = {
-                    VoiceAnnouncer.speak(context, Announcements.stageStart(com.cornming.slowjog.plan.Stage(StageKind.JOG, WorkoutPlan.DEFAULT_JOG)))
+                    VoiceAnnouncer.speak(context, VoiceLines.stage(com.cornming.slowjog.plan.Stage(StageKind.JOG, WorkoutPlan.DEFAULT_JOG)))
                 },
             ) { Text(stringResource(R.string.settings_voice_test)) }
         }
         Text(text = stringResource(R.string.settings_plan_help), style = MaterialTheme.typography.bodySmall)
+        val clipIds = remember { VoiceLines.catalog().map { it.id } }
+        val clipCount = remember { VoiceClips.available(context).count { it in clipIds } }
+        Text(
+            text = stringResource(R.string.settings_voice_clips_help, clipCount, clipIds.size),
+            style = MaterialTheme.typography.bodySmall,
+        )
 
         Text(text = stringResource(R.string.settings_sound_section), style = MaterialTheme.typography.titleMedium)
         Column {
@@ -211,10 +225,29 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             Switch(checked = settings.autoStopAtTarget, onCheckedChange = { AppSettings.setAutoStopAtTarget(it) })
         }
         Text(text = stringResource(R.string.settings_auto_stop_help), style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { CompletionChime.play() },
-        ) { Text(stringResource(R.string.settings_chime_test)) }
+
+        Text(text = stringResource(R.string.settings_chime_title), style = MaterialTheme.typography.titleSmall)
+        Column {
+            TextOption(
+                label = stringResource(R.string.settings_chime_random),
+                desc = stringResource(R.string.settings_chime_random_desc),
+                selected = settings.chimeChoice == ChimeChoice.Random,
+            ) {
+                AppSettings.setChimeChoice(ChimeChoice.Random)
+                ChimeSounds.play(ChimeChoice.Random)
+            }
+            for (kind in ChimeKind.values()) {
+                TextOption(
+                    label = kind.nameZh,
+                    desc = kind.descZh,
+                    selected = settings.chimeChoice == ChimeChoice.Fixed(kind),
+                ) {
+                    AppSettings.setChimeChoice(ChimeChoice.Fixed(kind))
+                    ChimeSounds.play(kind)
+                }
+            }
+        }
+        Text(text = stringResource(R.string.settings_chime_help), style = MaterialTheme.typography.bodySmall)
 
         Column {
             Text(
@@ -327,6 +360,23 @@ private fun SwitchRow(labelRes: Int, checked: Boolean, onChange: (Boolean) -> Un
             style = MaterialTheme.typography.bodyLarge,
         )
         Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+/** 有名稱和一行說明的單選項目。 */
+@Composable
+private fun TextOption(label: String, desc: String, selected: Boolean, onSelect: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Column(modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 10.dp)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            Text(text = desc, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
