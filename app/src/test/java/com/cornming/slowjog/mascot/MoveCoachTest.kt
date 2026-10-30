@@ -25,6 +25,14 @@ class MoveCoachTest {
     }
 
     @Test
+    fun holdMoveCountdownReachesOneWhenTheLastCycleIsCutShort() {
+        // 伸展 2.5 分鐘：5 個動作，每個 30 秒；小腿伸展第二個循環（16 到 32 秒）被截在 30 秒。
+        fun cue(elapsed: Long) = MoveCoach.cueAt(MoveSchedule.at(StageKind.COOLDOWN, 150_000L, elapsed)!!)
+        assertEquals(CoachCue(CoachCue.Kind.COUNT, 1), cue(29_500))
+        assertEquals(CoachCue(CoachCue.Kind.LEFT_10), cue(20_500))
+    }
+
+    @Test
     fun holdMoveSaysTenSecondsLeft() {
         assertEquals(CoachCue(CoachCue.Kind.LEFT_10), stretchCue(6_100))
         assertEquals(CoachCue(CoachCue.Kind.LEFT_10), stretchCue(6_900))
