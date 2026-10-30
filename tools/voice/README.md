@@ -30,3 +30,13 @@ App 預設用手機內建的中文語音念，聽起來機械。App 也支援「
 > 如果執行失敗，錯誤訊息會印出 API 的回應，照著調整 `generate.py` 裡的 `build_body()` 與 `find_audio()`。
 
 檔案大小：24 kHz 單聲道 16 位元 wav，每秒約 48 KB，63 句約 7 到 10 MB。
+
+## 驗收語音品質
+
+```
+python tools/voice/verify.py            # 訊號檢查：格式、語速、靜音、停頓、音量、爆音、音高起伏
+python tools/voice/verify.py --listen   # 再請 Gemini 聽寫並評分（需要 GEMINI_API_KEY，結果會快取）
+```
+
+結果在 `tools/voice/report/`（不進版控）：`review.html` 可以直接聽、標「過／重做」，按「匯出重做清單」會給出重跑的指令；`report.csv` 可用 Excel 看。
+Gemini 的評分（台灣腔、風格、自然度）只是篩選用，不是標準答案，請以耳朵為準。
