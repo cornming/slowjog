@@ -381,14 +381,15 @@ impl Session {
         web::stop_metronome();
         web::stop_speaking();
         web::release_awake();
+        let mut completed = false;
         if let Some(mut run) = run {
             let elapsed = run.elapsed();
             run.engine.accrue(elapsed, bpm);
             let duration_sec = (elapsed / 1000) as u32;
             if save && duration_sec > 0 {
-                // 匿名統計：達成這次的目標（課表走完，或時間／距離目標到了）並儲存，才算「完成」
+                // 達成這次的目標（課表走完，或時間／距離目標到了）並儲存，才算「完成」；統計在最後才回報
                 if run.engine.done() {
-                    web::report_completion("slowjog");
+                    completed = true;
                 } else {
                     web::chime();
                 }
@@ -410,6 +411,10 @@ impl Session {
         self.ending.set(false);
         self.tab.set(Tab::Home);
         web::scroll_top();
+        // 匿名統計放在最後：前面該做的（紀錄、收尾）都做完了才回報，回報出什麼事都不影響使用者
+        if completed {
+            web::report_completion("slowjog");
+        }
     }
 }
 
