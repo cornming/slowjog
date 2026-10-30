@@ -41,7 +41,9 @@ object MoveCoach {
         if (hold && slot.move.alternatesSides && slot.cycle > 0 && slot.cycleElapsedMs < SWITCH_WINDOW_MS) {
             return CoachCue(CoachCue.Kind.SWITCH_SIDE)
         }
-        val remainingMs = if (hold) slot.cycleRemainingMs else slot.slotRemainingMs
+        // 停留型看這一側剩多久；但最後一個循環可能被動作時間截短，所以不能超過整個動作剩下的時間，
+        // 否則最後幾秒的讀秒會停在 3 就換動作了。
+        val remainingMs = if (hold) minOf(slot.cycleRemainingMs, slot.slotRemainingMs) else slot.slotRemainingMs
         if (remainingMs <= 0) return null
         val seconds = ceil(remainingMs / 1000.0).toInt()
         return when {

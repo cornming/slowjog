@@ -268,7 +268,10 @@ object WorkoutController {
         if (autoAdvance && StageTransition.countdown(position.remainingMs, p.next(position.index) != null) != null) return
         val slot = MoveSchedule.at(stage, stage.minutes * 60_000L - position.remainingMs) ?: return
         val cue = MoveCoach.cueAt(slot) ?: return
-        val key = ((position.index * 100 + slot.index) * 1000 + slot.cycle) * 100 + cue.key
+        // 停留型動作的口令以「循環」為單位（每一側各喊一次）；反覆型以「整個動作」為單位。
+        // 反覆型的循環只有一兩秒，key 帶上循環編號的話，同一個讀秒會因為跨過循環邊界而重複喊。
+        val cycle = if (MoveCoach.isHold(slot.move)) slot.cycle else 0
+        val key = ((position.index * 100 + slot.index) * 1000 + cycle) * 100 + cue.key
         if (key == lastCoachKey) return
         lastCoachKey = key
         VoiceAnnouncer.speak(app, VoiceLines.coach(cue), flush = cue.kind == CoachCue.Kind.COUNT)
