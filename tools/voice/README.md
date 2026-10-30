@@ -22,6 +22,8 @@ App 預設用手機內建的中文語音念，聽起來機械。App 也支援「
 4. 想換聲音：`--voice Zephyr`（文件標示明亮）、`Sadachbia`（活潑）、`Laomedeia`（輕快），預設是 `Puck`（輕快）。
 5. 提交並推送，CI 會把語音檔打包進 App；設定畫面會顯示「目前內附的語音檔：N / 63 句」。
 
+如果預設的 Interactions 格式回應不對，加 `--api classic` 改用較早公開的 generateContent 格式（預設模型 `gemini-2.5-flash-preview-tts`，可用 `--model` 換）。
+
 腳本會切掉每句前後的靜音（讀秒才不會慢半拍）並把音量統一。
 
 > 這支腳本照 Google 的文件（Interactions API）寫成，寫的時候沒有實際連到 Google 測過。

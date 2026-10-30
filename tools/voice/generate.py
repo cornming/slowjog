@@ -26,8 +26,10 @@ import urllib.request
 import wave
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions"
+API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
+ENDPOINT = API_ROOT + "/interactions"
 DEFAULT_MODEL = "gemini-3.8-flash-tts"
+CLASSIC_MODEL = "gemini-2.5-flash-preview-tts"  # --api classic 用的模型（generateContent 格式，語音合成最早公開的那一種）
 DEFAULT_VOICE = "Puck"  # 文件標示 Upbeat（輕快）；也可以試 Zephyr（明亮）、Sadachbia（活潑）、Laomedeia（輕快）
 SAMPLE_RATE = 24000
 
@@ -71,11 +73,25 @@ def build_body(model: str, voice: str, text: str, style: str) -> dict:
     }
 
 
+def build_body_classic(voice: str, text: str, style: str) -> dict:
+    """generateContent 格式：語氣用一句英文指示放在文字前面。"""
+    return {
+        "contents": [{"parts": [{"text": f"Say this in {style}: {text}"}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}},
+        },
+    }
+
+
 def find_audio(node):
-    """在回應裡找出 type 為 audio、帶有 data（base64）的項目。"""
+    """在回應裡找出音訊的 base64：Interactions 是 type 為 audio 的 data，generateContent 是 inlineData.data。"""
     if isinstance(node, dict):
         if node.get("type") == "audio" and isinstance(node.get("data"), str):
             return node["data"]
+        inline = node.get("inlineData")
+        if isinstance(inline, dict) and isinstance(inline.get("data"), str):
+            return inline["data"]
         for value in node.values():
             found = find_audio(value)
             if found:
@@ -88,12 +104,12 @@ def find_audio(node):
     return None
 
 
-def request_audio(api_key: str, body: dict, retries: int = 4) -> bytes:
+def request_audio(api_key: str, endpoint: str, body: dict, retries: int = 4) -> bytes:
     data = json.dumps(body).encode("utf-8")
     delay = 5
     for attempt in range(retries + 1):
         req = urllib.request.Request(
-            ENDPOINT,
+            endpoint,
             data=data,
             headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
         )
@@ -166,7 +182,9 @@ def main():
     parser = argparse.ArgumentParser(description="用 Gemini 語音合成產生 SlowJog 的語音檔")
     parser.add_argument("--script", default=os.path.join(HERE, "script.csv"))
     parser.add_argument("--out", default=os.path.normpath(os.path.join(HERE, "..", "..", "app", "src", "main", "assets", "voice")))
-    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--api", choices=["interactions", "classic"], default="interactions",
+                        help="API 格式。預設 interactions；若回應格式不對，改用 classic（generateContent）")
+    parser.add_argument("--model", help=f"模型名稱（預設 interactions 用 {DEFAULT_MODEL}，classic 用 {CLASSIC_MODEL}）")
     parser.add_argument("--voice", default=DEFAULT_VOICE)
     parser.add_argument("--only", nargs="*", help="只產生這些 id")
     parser.add_argument("--force", action="store_true", help="已有的檔案也重做")
@@ -190,7 +208,13 @@ def main():
             skipped += 1
             continue
         print(f"[{n}/{len(todo)}] {row['id']}：{row['text']}")
-        raw = request_audio(api_key, build_body(args.model, args.voice, row["text"], style_for(row["id"])))
+        if args.api == "classic":
+            endpoint = f"{API_ROOT}/models/{args.model or CLASSIC_MODEL}:generateContent"
+            body = build_body_classic(args.voice, row["text"], style_for(row["id"]))
+        else:
+            endpoint = ENDPOINT
+            body = build_body(args.model or DEFAULT_MODEL, args.voice, row["text"], style_for(row["id"]))
+        raw = request_audio(api_key, endpoint, body)
         samples, rate = to_pcm(raw)
         if not args.no_polish:
             samples = polish(samples, rate)
