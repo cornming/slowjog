@@ -386,7 +386,10 @@ impl Session {
             run.engine.accrue(elapsed, bpm);
             let duration_sec = (elapsed / 1000) as u32;
             if save && duration_sec > 0 {
-                if !run.engine.done() {
+                // 匿名統計：達成這次的目標（課表走完，或時間／距離目標到了）並儲存，才算「完成」
+                if run.engine.done() {
+                    web::report_completion("slowjog");
+                } else {
                     web::chime();
                 }
                 let rec = Record {
@@ -985,6 +988,10 @@ fn SettingsView() -> impl IntoView {
             <Stepper label="每週目標" value=get(|x| x.weekly_target) min=habit::MIN_WEEKLY_TARGET max=habit::MAX_WEEKLY_TARGET step=1 unit=" 天" set=move |v| s.update_settings(|x| x.weekly_target = v)/>
         </section>
 
-        <p class="foot">{format!("SlowJog 網頁版 v{VERSION}　沒有廣告、不追蹤，所有資料只存在這個瀏覽器。")}</p>
+        <p class="foot">{format!("SlowJog 網頁版 v{VERSION}　沒有廣告，運動紀錄只存在這個瀏覽器。")}</p>
+        <p class="foot">
+            "達成目標並儲存時，會匿名記一筆完成次數與當下的小時，不含任何個人資料；"
+            <a href="https://cornming.github.io/stats/" target="_blank" rel="noopener">"看大家的統計"</a>
+        </p>
     }
 }

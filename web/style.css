@@ -63,6 +63,7 @@ small { font-size: 0.7em; font-weight: 500; color: var(--muted); margin-left: 0.
 .card h2 { font-size: 1.05rem; font-weight: 700; display: flex; align-items: baseline; }
 .hint { color: var(--muted); font-size: 0.86rem; }
 .foot { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 8px 0; }
+.foot a { color: inherit; text-decoration: underline; }
 
 /* 首頁摘要 */
 .hero-main { display: flex; justify-content: space-between; align-items: center; }

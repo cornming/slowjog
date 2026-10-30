@@ -29,7 +29,7 @@
 - **可與音樂同時播放**：節拍器不搶音訊焦點，可以邊聽 Spotify 邊用。
 - **運動中螢幕恆亮**，停止後恢復系統設定。
 - **檢查更新**：開啟 App 時自動檢查 GitHub 上的最新版，有新版就在首頁提示；按「下載並更新」會在 App 內下載 APK 並開啟系統安裝畫面。首頁也有「檢查更新」按鈕可手動檢查。第一次更新時，系統會要求允許 SlowJog 安裝應用程式。
-- 沒有廣告、不追蹤。網路權限只用來檢查與下載更新，只連到 GitHub，不送出任何使用者資料。
+- 沒有廣告、不追蹤。Android App 的網路權限只用來檢查與下載更新，只連到 GitHub，不送出任何使用者資料。（網頁版另有匿名的完成統計，見下方「網頁版」。）
 
 ## 下載與安裝
 
@@ -69,6 +69,8 @@ APK 會產生在 `app/build/outputs/apk/debug/`。
 - 運動中螢幕恆亮（Screen Wake Lock，瀏覽器支援才有）、PWA（可加到主畫面、離線可用）、介面全部是台灣正體中文。
 
 **語音**：沿用同一份語音稿 `tools/voice/script.csv`（63 句）與 Android 版的 `app/src/main/assets/voice/<id>.wav`，轉成 mp3 放在 `web/public/voice/<id>.mp3`（單聲道 64 kbps，共約 1.8 MB；用 `python3 tools/voice/to_web.py` 轉檔，需要 ffmpeg）。網頁版先找 `voice/<id>.mp3`，有就播，**檔案不存在或播不出來才退回瀏覽器內建語音**（台灣華語）；同一時間只念一句，其他排隊，讀秒會打斷前一句。語氣分類看 id 前綴：`count_`、`coach_`、`cheer_`、`move_`、`stage_`、`elapsed_`、`plan_done`。`cargo test` 會檢查語音稿與 `script.csv` 一致、63 句都有 mp3。重新轉檔後請把 `web/public/sw.js` 的 `CACHE` 版本號加一。
+
+**匿名完成統計**（只有網頁版有，Android App 不會送出任何資料）：達成當次目標（課表走完，或時間／距離目標到了）並按「儲存並結束」時，網頁會匿名送出一筆紀錄：**完成當下的小時（手機的當地時間 0 到 23）**，伺服器端另外記下時間。沒有帳號、沒有裝置編號、不存 IP，也不使用 cookie。大家的統計公開在 <https://cornming.github.io/stats/>。中途結束、選「放棄這次紀錄」都不算完成。SlowJog 沒有固定課程，所以只統計完成次數與時段，沒有排行榜。收集端是一份 Google 試算表加 Apps Script，程式碼與部署步驟在 [cornming.github.io 的 `apps-script/`](https://github.com/cornming/cornming.github.io/tree/main/apps-script)，網址寫在 `web/src/web.rs` 的 `STATS_URL`。收集網址是公開的、沒有登入驗證，數字只是約略值。
 
 **省略或不同的地方**（網頁做不到或不適合）：
 
