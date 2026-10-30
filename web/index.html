@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff7a45" />
+    <meta name="description" content="超慢跑節拍器，加上暖身、肌力、伸展課表與教練語音。" />
+    <title>SlowJog 超慢跑</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+
+    <link data-trunk rel="rust" data-wasm-opt="z" />
+    <link data-trunk rel="css" href="style.css" />
+    <link data-trunk rel="copy-file" href="public/manifest.webmanifest" />
+    <link data-trunk rel="copy-file" href="public/sw.js" />
+    <link data-trunk rel="copy-file" href="public/icon.svg" />
+    <link data-trunk rel="copy-dir" href="public/voice" />
+
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+      }
+    </script>
+  </head>
+  <body></body>
+</html>
