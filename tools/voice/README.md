@@ -40,3 +40,13 @@ python tools/voice/verify.py --listen   # 再請 Gemini 聽寫並評分（需要
 
 結果在 `tools/voice/report/`（不進版控）：`review.html` 可以直接聽、標「過／重做」，按「匯出重做清單」會給出重跑的指令；`report.csv` 可用 Excel 看。
 Gemini 的評分（台灣腔、風格、自然度）只是篩選用，不是標準答案，請以耳朵為準。
+
+## 網頁版（web/）共用這些語音
+
+網頁版用同一份語音稿，聲音檔則是這裡 wav 轉成的 mp3（`web/public/voice/<id>.mp3`）。重做或新增 wav 之後，執行
+
+```
+python3 tools/voice/to_web.py
+```
+
+即可同步（需要 ffmpeg；已經比 wav 新的 mp3 會略過，`--force` 全部重做），並把 `web/public/sw.js` 的 `CACHE` 版本號加一。
