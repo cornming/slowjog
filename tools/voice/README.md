@@ -22,9 +22,21 @@ App 預設用手機內建的中文語音念，聽起來機械。App 也支援「
 4. 想換聲音：`--voice Zephyr`（文件標示明亮）、`Sadachbia`（活潑）、`Laomedeia`（輕快），預設是 `Puck`（輕快）。
 5. 提交並推送，CI 會把語音檔打包進 App；設定畫面會顯示「目前內附的語音檔：N / 63 句」。
 
+如果預設的 Interactions 格式回應不對，加 `--api classic` 改用較早公開的 generateContent 格式（預設模型 `gemini-2.5-flash-preview-tts`，可用 `--model` 換）。
+
 腳本會切掉每句前後的靜音（讀秒才不會慢半拍）並把音量統一。
 
 > 這支腳本照 Google 的文件（Interactions API）寫成，寫的時候沒有實際連到 Google 測過。
 > 如果執行失敗，錯誤訊息會印出 API 的回應，照著調整 `generate.py` 裡的 `build_body()` 與 `find_audio()`。
 
 檔案大小：24 kHz 單聲道 16 位元 wav，每秒約 48 KB，63 句約 7 到 10 MB。
+
+## 驗收語音品質
+
+```
+python tools/voice/verify.py            # 訊號檢查：格式、語速、靜音、停頓、音量、爆音、音高起伏
+python tools/voice/verify.py --listen   # 再請 Gemini 聽寫並評分（需要 GEMINI_API_KEY，結果會快取）
+```
+
+結果在 `tools/voice/report/`（不進版控）：`review.html` 可以直接聽、標「過／重做」，按「匯出重做清單」會給出重跑的指令；`report.csv` 可用 Excel 看。
+Gemini 的評分（台灣腔、風格、自然度）只是篩選用，不是標準答案，請以耳朵為準。
