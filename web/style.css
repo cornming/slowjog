@@ -209,3 +209,11 @@ small { font-size: 0.7em; font-weight: 500; color: var(--muted); margin-left: 0.
 @media (prefers-reduced-motion: reduce) {
   .orb.a, .orb.b, .count, .bubble { animation: none; }
 }
+
+/* ── 回訪：歡迎回來、里程碑、行事曆提醒 ── */
+.welcome { margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: var(--accent-soft); color: var(--text); }
+.milestone { margin: 0 0 8px; color: var(--accent); font-weight: 700; }
+.celebrate .remind h2 { margin: 0 0 4px; font-size: 1.05rem; }
+.time-pick { display: inline-flex; align-items: center; gap: 10px; margin: 8px 0 12px; color: var(--muted); }
+.time-pick input { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; background: #fff; color: var(--text); }
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }

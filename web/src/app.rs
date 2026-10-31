@@ -1,3 +1,4 @@
+use crate::comeback;
 use crate::engine::{self, Engine, Event, Options, Target};
 use crate::plan::{self, StageKind, WorkoutPlan};
 use crate::stats::{self, DEFAULT_BPM, MAX_BPM, MIN_BPM, Record, Stats, TapTempo, distance, habit};
@@ -10,6 +11,9 @@ use std::time::Duration;
 
 const KEY_SETTINGS: &str = "slowjog:settings";
 const KEY_RECORDS: &str = "slowjog:records";
+/// 這個瀏覽器完成過幾次（只存在這支手機，回報時只送分級）
+const KEY_COMPLETIONS: &str = "slowjog:completions";
+const PAGE_URL: &str = "https://cornming.github.io/slowjog/";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -413,7 +417,8 @@ impl Session {
         web::scroll_top();
         // 匿名統計放在最後：前面該做的（紀錄、收尾）都做完了才回報，回報出什麼事都不影響使用者
         if completed {
-            web::report_completion("slowjog");
+            let nth = comeback::nth_bucket(web::bump_counter(KEY_COMPLETIONS));
+            web::report_completion("slowjog", nth);
         }
     }
 }
@@ -534,12 +539,20 @@ fn Home() -> impl IntoView {
     let week = move || habit::week_count(&days(), web::today());
 
     let bpm = Signal::derive(move || s.settings.with(|x| x.bpm));
+    // 距離上次運動幾天；從沒運動過是 None
+    let away = move || {
+        s.records
+            .with(|r| r.iter().map(|x| x.date).max())
+            .map(|d| (web::today() - d).max(0) as u32)
+    };
 
     view! {
         <header class="head">
             <h1>"SlowJog"<small>"超慢跑"</small></h1>
             <p class="sub">"早晨 30 分鐘運動，跟著節拍慢慢跑"</p>
         </header>
+
+        {move || comeback::welcome_back(away(), "今天先做完一次就好。").map(|w| view! { <p class="welcome">{w}</p> })}
 
         <section class="card hero">
             <div class="hero-main">
@@ -557,6 +570,8 @@ fn Home() -> impl IntoView {
                 <div><b>{move || mmss(stats().total_jog_sec / 60 * 60).trim_end_matches(":00").to_string()}<small>" 分"</small></b><span>"累計超慢跑"</span></div>
             </div>
         </section>
+
+        {move || stats().done_today.then(|| view! { <Celebrate streak=stats().streak_days/> })}
 
         <PlanCard/>
 
@@ -593,6 +608,54 @@ fn Home() -> impl IntoView {
             "開始運動"
         </button>
         <p class="foot">{format!("SlowJog 網頁版 v{VERSION}")}</p>
+    }
+}
+
+/// 今天做完之後：連續天數的里程碑，以及請使用者選一個時間，用手機的行事曆每天提醒。
+#[component]
+fn Celebrate(streak: u32) -> impl IntoView {
+    view! {
+        <section class="card celebrate">
+            {comeback::milestone(streak).map(|t| view! { <p class="milestone">{t}</p> })}
+            <Remind/>
+        </section>
+    }
+}
+
+/// 提醒由手機的行事曆負責，網站不記錄使用者選的時間。
+#[component]
+fn Remind() -> impl IntoView {
+    let time = RwSignal::new("06:30".to_string());
+    let when = move || comeback::parse_hhmm(&time.get()).unwrap_or((6, 30));
+    let title = "SlowJog：早晨 30 分鐘";
+    let note = "跟著節拍做一次超慢跑。";
+    let details = format!("{note}{PAGE_URL}");
+    let ics = move |_| {
+        let (hh, mm) = when();
+        let text = comeback::reminder_ics("slowjog", title, note, PAGE_URL, &web::tomorrow_ymd(), hh, mm);
+        web::download_text("slowjog-reminder.ics", "text/calendar", &text);
+    };
+    let gcal = move || {
+        let (hh, mm) = when();
+        comeback::google_calendar_url(title, &details, &web::tomorrow_ymd(), hh, mm)
+    };
+    view! {
+        <div class="remind">
+            <h2>"明天也來一次？"</h2>
+            <p class="hint">"選一個時間，手機的行事曆每天會在那時提醒你。提醒由行事曆負責，這個網站不會記錄你選的時間。"</p>
+            <label class="time-pick">
+                <span>"每天"</span>
+                <input
+                    type="time"
+                    prop:value=move || time.get()
+                    on:input=move |ev| time.set(event_target_value(&ev))
+                />
+            </label>
+            <div class="row">
+                <button class="btn ghost" on:click=ics>"下載行事曆提醒"</button>
+                <a class="btn ghost" href=gcal target="_blank" rel="noopener">"用 Google 日曆加入"</a>
+            </div>
+        </div>
     }
 }
 
@@ -995,7 +1058,7 @@ fn SettingsView() -> impl IntoView {
 
         <p class="foot">{format!("SlowJog 網頁版 v{VERSION}　沒有廣告，運動紀錄只存在這個瀏覽器。")}</p>
         <p class="foot">
-            "達成目標並儲存時，會匿名記一筆完成次數與當下的小時，不含任何個人資料；"
+            "達成目標並儲存時，會匿名記一筆（當下的小時、這支手機第幾次完成），不含任何個人資料；"
             <a href="https://cornming.github.io/stats/" target="_blank" rel="noopener">"看大家的統計"</a>
         </p>
     }

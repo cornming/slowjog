@@ -70,7 +70,9 @@ APK 會產生在 `app/build/outputs/apk/debug/`。
 
 **語音**：沿用同一份語音稿 `tools/voice/script.csv`（63 句）與 Android 版的 `app/src/main/assets/voice/<id>.wav`，轉成 mp3 放在 `web/public/voice/<id>.mp3`（單聲道 64 kbps，共約 1.8 MB；用 `python3 tools/voice/to_web.py` 轉檔，需要 ffmpeg）。網頁版先找 `voice/<id>.mp3`，有就播，**檔案不存在或播不出來才退回瀏覽器內建語音**（台灣華語）；同一時間只念一句，其他排隊，讀秒會打斷前一句。語氣分類看 id 前綴：`count_`、`coach_`、`cheer_`、`move_`、`stage_`、`elapsed_`、`plan_done`。`cargo test` 會檢查語音稿與 `script.csv` 一致、63 句都有 mp3。重新轉檔後請把 `web/public/sw.js` 的 `CACHE` 版本號加一。
 
-**匿名完成統計**（只有網頁版有，Android App 不會送出任何資料）：達成當次目標（課表走完，或時間／距離目標到了）並按「儲存並結束」時，網頁會匿名送出一筆紀錄：**完成當下的小時（手機的當地時間 0 到 23）**，伺服器端另外記下時間。沒有帳號、沒有裝置編號、不存 IP，也不使用 cookie。大家的統計公開在 <https://cornming.github.io/stats/>。中途結束、選「放棄這次紀錄」都不算完成。SlowJog 沒有固定課程，所以只統計完成次數與時段，沒有排行榜。收集端是一份 Google 試算表加 Apps Script，程式碼與部署步驟在 [cornming.github.io 的 `apps-script/`](https://github.com/cornming/cornming.github.io/tree/main/apps-script)，網址寫在 `web/src/web.rs` 的 `STATS_URL`。收集網址是公開的、沒有登入驗證，數字只是約略值。
+**匿名完成統計**（只有網頁版有，Android App 不會送出任何資料）：達成當次目標（課表走完，或時間／距離目標到了）並按「儲存並結束」時，網頁會匿名送出一筆紀錄：**完成當下的小時（手機的當地時間 0 到 23）、這個瀏覽器第幾次完成的分級（1、2、3、4+）**，伺服器端另外記下時間。沒有帳號、沒有裝置編號、不存 IP，也不使用 cookie。大家的統計公開在 <https://cornming.github.io/stats/>。中途結束、選「放棄這次紀錄」都不算完成。SlowJog 沒有固定課程，所以只統計完成次數、時段與回訪，沒有排行榜。「第幾次完成」的次數只存在使用者自己手機的瀏覽器裡（`slowjog:completions`），送出去的只有分級；換手機、清除瀏覽資料會被當成新的人，所以回訪率通常會偏低。收集端是一份 Google 試算表加 Apps Script，程式碼與部署步驟在 [cornming.github.io 的 `apps-script/`](https://github.com/cornming/cornming.github.io/tree/main/apps-script)，網址寫在 `web/src/web.rs` 的 `STATS_URL`。收集網址是公開的、沒有登入驗證，數字只是約略值。
+
+**讓人願意回來的小功能**（網頁版）：隔了 3 天以上沒運動，首頁會說「歡迎回來。今天先做完一次就好。」；剛好連續 3、7、14、30 天的那一天，今天做完後會說一句鼓勵；今天做完後首頁會出現「明天也來一次？」，可以選時間下載每天重複的行事曆提醒（.ics），或用 Google 日曆加入。提醒由手機的行事曆負責，網站不會記錄你選的時間。（網頁沒辦法在背景推播通知，要準時的提醒又想鎖屏跑步，請用 Android App。）純邏輯在 `web/src/comeback.rs`，有單元測試。
 
 **省略或不同的地方**（網頁做不到或不適合）：
 
