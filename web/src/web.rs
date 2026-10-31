@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::{JsFuture, spawn_local};
 use web_sys::{AudioBuffer, AudioContext, HtmlAudioElement, OscillatorType, SpeechSynthesisUtterance};
@@ -52,6 +54,8 @@ const SPEECH_TIMEOUT_MS: i32 = 9_000;
 
 /// 念一句提示：有預錄語音檔（voice/<id>.mp3）就播檔案，沒有或播不出來就用內建語音念 `fallback`。
 pub fn say(id: &str, fallback: &str, flush: bool) {
+    // 說話的時候把背景音樂壓低，口令才聽得清楚
+    crate::music::duck(2.8);
     let start_now = VOICE.with(|v| {
         let mut v = v.borrow_mut();
         if flush {
@@ -389,6 +393,8 @@ fn metro_tick() {
         while m.next_time < now + ahead {
             let t = m.next_time.max(now);
             click_at(&ctx, sound, t);
+            // 背景音樂掛在同一條拍子線上：每排一拍，就依第幾拍排進鼓、貝斯、琶音
+            crate::music::on_beat(t, m.beat, period);
             m.pending.push_back((t, m.beat));
             m.beat += 1;
             m.next_time += period;
@@ -571,3 +577,59 @@ pub fn tomorrow_ymd() -> String {
     let d = js_sys::Date::new(&JsValue::from_f64(js_sys::Date::now() + 86_400_000.0));
     format!("{:04}{:02}{:02}", d.get_full_year(), d.get_month() + 1, d.get_date())
 }
+
+// ───────────────────────── 動畫輔助 ─────────────────────────
+
+/// 每個畫面影格呼叫一次 `f(時間戳毫秒)`，直到 `stop` 被設成 true。
+/// 每一格各建一個一次性的回呼，不留下自我參照的閉包，所以結束時沒有東西會洩漏，
+/// 也不會有「閉包執行到一半被丟掉」的問題。
+pub fn raf_loop(stop: Arc<AtomicBool>, f: impl FnMut(f64) + 'static) {
+    fn schedule(stop: Arc<AtomicBool>, f: Rc<RefCell<dyn FnMut(f64)>>) {
+        let Some(win) = web_sys::window() else { return };
+        let (stop2, f2) = (stop.clone(), f.clone());
+        let cb = Closure::once_into_js(move |t: f64| {
+            if stop2.load(Ordering::Relaxed) {
+                return;
+            }
+            (f2.borrow_mut())(t);
+            schedule(stop2, f2);
+        });
+        let _ = win.request_animation_frame(cb.unchecked_ref());
+    }
+    let f: Rc<RefCell<dyn FnMut(f64)>> = Rc::new(RefCell::new(f));
+    schedule(stop, f);
+}
+
+/// 設定元素的一個 CSS 屬性（含自訂屬性 `--x`）。元素不存在或不能設就略過。
+pub fn set_css(el: &web_sys::Element, name: &str, value: &str) {
+    if let Some(h) = el.dyn_ref::<web_sys::HtmlElement>() {
+        let _ = h.style().set_property(name, value);
+    }
+}
+
+thread_local! {
+    static PRELOADED: RefCell<Vec<(String, web_sys::Element)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// 先把圖載進瀏覽器快取，換動作時才不會空白一下。同一個網址只載一次。
+pub fn preload_image(url: &str) {
+    if PRELOADED.with(|p| p.borrow().iter().any(|(u, _)| u == url)) {
+        return;
+    }
+    let Some(doc) = web_sys::window().and_then(|w| w.document()) else { return };
+    let Ok(img) = doc.create_element("img") else { return };
+    let _ = img.set_attribute("src", url);
+    PRELOADED.with(|p| p.borrow_mut().push((url.to_string(), img)));
+}
+
+/// 使用者是否在系統裡要求「減少動態效果」。
+pub fn prefers_reduced_motion() -> bool {
+    let Some(win) = web_sys::window() else { return false };
+    let Some(f) = Reflect::get(&win, &"matchMedia".into()).ok().and_then(|f| f.dyn_into::<Function>().ok()) else { return false };
+    f.call1(&win, &"(prefers-reduced-motion: reduce)".into())
+        .ok()
+        .and_then(|m| Reflect::get(&m, &"matches".into()).ok())
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+}
+

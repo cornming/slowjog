@@ -217,3 +217,32 @@ small { font-size: 0.7em; font-weight: 500; color: var(--muted); margin-left: 0.
 .time-pick { display: inline-flex; align-items: center; gap: 10px; margin: 8px 0 12px; color: var(--muted); }
 .time-pick input { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; background: #fff; color: var(--text); }
 a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* ── 舞台：風景＋陪跑小人物 ── */
+.stage { --scene-h: 210px; position: relative; height: var(--scene-h); border-radius: 20px; overflow: hidden; margin: 12px 0; isolation: isolate; }
+.scene-back, .scene-layer { position: absolute; top: 0; left: 0; height: 100%; }
+.scene-back { width: calc(var(--scene-h) * 2); background-size: 100% 100%; background-repeat: no-repeat; }
+.scene-layer { width: 100%; background-size: auto 100%; background-repeat: repeat-x; background-position: calc(var(--f, 0) * var(--scene-h) * 2 * -1) 0; }
+.scene-band { position: absolute; left: 0; right: 0; bottom: 0; }
+.mascot-btn {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  height: calc(var(--scene-h) * 0.78); width: calc(var(--scene-h) * 0.78 * 0.8);
+  padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.mflip { position: absolute; inset: 0; }
+.m { position: absolute; inset: 0; background-repeat: no-repeat; }
+.pixel .m, img.pixel { image-rendering: pixelated; }
+.mascot-btn.hop-a { animation: hopA 0.45s ease-out; }
+.mascot-btn.hop-b { animation: hopB 0.45s ease-out; }
+@keyframes hopA { 0%, 100% { transform: translateX(-50%) translateY(0); } 40% { transform: translateX(-50%) translateY(-12%) scale(1.04); } }
+@keyframes hopB { 0%, 100% { transform: translateX(-50%) translateY(0); } 40% { transform: translateX(-50%) translateY(-12%) scale(1.04); } }
+.stage-bubble { position: absolute; top: 8px; left: 12px; right: 12px; margin: 0 auto; width: fit-content; max-width: calc(100% - 24px); text-align: center; z-index: 3; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12); }
+.confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
+.confetti i { position: absolute; top: -12%; left: var(--x); font-style: normal; font-size: 1.4rem; transform: rotate(var(--r)); animation: confettiFall var(--t) ease-in var(--d) forwards; }
+@keyframes confettiFall { to { transform: translateY(300px) rotate(calc(var(--r) * 6)); opacity: 0; } }
+.mascot-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.mpick { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.mpick.on { border-color: var(--accent); background: var(--accent-soft); }
+.mpick small { color: var(--muted); font-size: 0.72rem; }
+@media (prefers-reduced-motion: reduce) { .mascot-btn.hop-a, .mascot-btn.hop-b, .confetti i { animation: none; } }
+

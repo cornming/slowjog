@@ -1,6 +1,6 @@
 # 小人物影格
 
-預先算圖的小人物素材與轉檔工具。影格表放在 `app/src/main/res/drawable-nodpi/`（WebP），App 的首頁、設定與運動中畫面直接使用。
+預先算圖的小人物素材與轉檔工具。影格表放在 `app/src/main/res/drawable-nodpi/`（WebP），App 的首頁、設定與運動中畫面直接使用。網頁版（`web/`）用的是同一批檔案，複製在 `web/public/mascot/`（去掉 `mascot_` 前綴，例如 `mascot_blue_run.webp` → `blue_run.webp`）；重新輸出素材後兩邊都要更新，`cd web && cargo test` 會檢查兩邊逐位元組相同。
 
 ## 內容
 

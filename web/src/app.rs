@@ -1,5 +1,9 @@
 use crate::comeback;
 use crate::engine::{self, Engine, Event, Options, Target};
+use crate::mascot::{self, Style};
+use crate::music::{self, Mode, Music};
+use crate::scenery::ScenePref;
+use crate::stage;
 use crate::plan::{self, StageKind, WorkoutPlan};
 use crate::stats::{self, DEFAULT_BPM, MAX_BPM, MIN_BPM, Record, Stats, TapTempo, distance, habit};
 use crate::voice;
@@ -7,6 +11,7 @@ use crate::web::{self, ClickSound};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Duration;
 
 const KEY_SETTINGS: &str = "slowjog:settings";
@@ -44,6 +49,15 @@ struct Settings {
     target_minutes: u32,
     target_meters: u32,
     auto_stop: bool,
+    /// 陪跑小人物的外型
+    mascot: Style,
+    /// 跑步時背後的風景
+    scene: ScenePref,
+    /// 風景是否跟著距離捲動
+    scene_moving: bool,
+    /// 背景音樂的風格與音量（0 到 100）
+    music: Music,
+    music_vol: u32,
 }
 
 impl Default for Settings {
@@ -67,6 +81,11 @@ impl Default for Settings {
             target_minutes: 30,
             target_meters: 3000,
             auto_stop: true,
+            mascot: Style::default(),
+            scene: ScenePref::default(),
+            scene_moving: true,
+            music: Music::default(),
+            music_vol: 70,
         }
     }
 }
@@ -191,6 +210,22 @@ impl Session {
         let s = self.settings.get_untracked();
         web::save(KEY_SETTINGS, &serde_json::to_string(&s).unwrap_or_default());
         web::set_click_sound(s.sound);
+        self.sync_music();
+    }
+
+    /// 依運動狀態決定背景音樂怎麼播：超慢跑跟著節拍、其他階段只有柔和長音、暫停或結束就安靜。
+    /// 試聽節拍的時候也播（讓人在首頁就能聽聽看）。
+    fn sync_music(&self) {
+        let st = self.settings.get_untracked();
+        let running = self.active.with_untracked(|a| a.is_some());
+        let mode = if self.preview.get_untracked() || (running && !self.paused.get_untracked() && self.jogging.get_untracked()) {
+            Mode::Beat
+        } else if running && !self.paused.get_untracked() {
+            Mode::Ambient
+        } else {
+            Mode::Off
+        };
+        music::set_mode(mode, st.music, st.music_vol);
     }
 
     fn bpm(&self) -> u32 {
@@ -231,6 +266,7 @@ impl Session {
             self.start_metronome();
             self.preview.set(true);
         }
+        self.sync_music();
     }
 
     fn start(&self) {
@@ -266,6 +302,7 @@ impl Session {
         self.active.set(Some(snap));
         web::scroll_top();
         self.tick();
+        self.sync_music();
     }
 
     fn tick(&self) {
@@ -291,6 +328,7 @@ impl Session {
     fn sync_jog(&self, jogging: bool) {
         if self.jogging.get_untracked() != jogging {
             self.jogging.set(jogging);
+            self.sync_music();
         }
     }
 
@@ -303,10 +341,12 @@ impl Session {
                 Event::StartJog => {
                     self.start_metronome();
                     self.jogging.set(true);
+                    self.sync_music();
                 }
                 Event::EndJog => {
                     web::stop_metronome();
                     self.jogging.set(false);
+                    self.sync_music();
                 }
                 Event::Cheer(text) => self.cheer.update(|c| *c = (c.0 + 1, text)),
                 Event::Done { voice } => {
@@ -343,6 +383,7 @@ impl Session {
         }
         if let Some(j) = now_jogging {
             self.jogging.set(j);
+            self.sync_music();
         }
     }
 
@@ -366,6 +407,7 @@ impl Session {
         } else if self.jogging.get_untracked() {
             self.start_metronome();
         }
+        self.sync_music();
     }
 
     fn cheer_now(&self) {
@@ -415,6 +457,7 @@ impl Session {
         self.ending.set(false);
         self.tab.set(Tab::Home);
         web::scroll_top();
+        self.sync_music();
         // 匿名統計放在最後：前面該做的（紀錄、收尾）都做完了才回報，回報出什麼事都不影響使用者
         if completed {
             let nth = comeback::nth_bucket(web::bump_counter(KEY_COMPLETIONS));
@@ -730,6 +773,28 @@ fn Workout() -> impl IntoView {
         Some((engine::view(&p, s.elapsed.get(), a.auto), p))
     };
 
+    // 舞台（風景＋陪跑小人物）需要的輸入
+    let stage_inputs = stage::Inputs {
+        jogging: s.jogging.into(),
+        paused: s.paused.into(),
+        done: s.done.into(),
+        beat: s.beat.into(),
+        elapsed: s.elapsed.into(),
+        meters: s.meters.into(),
+        bpm: Signal::derive(move || s.settings.with(|x| x.bpm)),
+        stride_cm: Signal::derive(move || s.settings.with(|x| x.stride_cm)),
+        style: Signal::derive(move || s.settings.with(|x| x.mascot)),
+        scene: Signal::derive(move || s.settings.with(|x| x.scene).scene(web::today())),
+        scene_moving: Signal::derive(move || s.settings.with(|x| x.scene_moving)),
+        cheer: s.cheer.into(),
+        view_at: Rc::new(move |est| {
+            s.active.with_untracked(|a| {
+                let a = a.as_ref()?;
+                Some(engine::view(a.plan.as_ref()?, est, a.auto))
+            })
+        }),
+    };
+
     // 大計時：有課表顯示這一階段剩餘時間；沒課表顯示已運動時間
     let main_time = move || match stage_view() {
         Some((v, _)) if v.stage.is_some() => mmss(ceil_sec(v.stage_remaining_ms)),
@@ -773,6 +838,8 @@ fn Workout() -> impl IntoView {
             {move || {
                 stage_view().and_then(|(v, _)| v.countdown).map(|n| view! { <div class="count" aria-live="assertive">{n}</div> })
             }}
+
+            <stage::Stage inputs=stage_inputs on_tap=move |_| s.cheer_now()/>
 
             <section class="card main">
                 {move || {
@@ -865,24 +932,12 @@ fn JogPanel() -> impl IntoView {
     };
     view! {
         <div class="jog">
-            <button
-                class="orb"
-                class:a=move || s.beat.get() % 2 == 0
-                class:b=move || s.beat.get() % 2 == 1
-                aria-label="點一下聽一句鼓勵"
-                on:click=move |_| s.cheer_now()
-            >
-                <span>"🏃"</span>
-            </button>
             <div class="bpm"><b>{move || s.settings.with(|x| x.bpm)}</b><small>"BPM"</small></div>
             <div class="mini">
                 <div><b>{move || mmss(s.jog_sec.get())}</b><span>"超慢跑時間"</span></div>
                 <div><b>{move || km(s.meters.get())}</b><span>"估算距離"</span></div>
             </div>
             {move || goal_left().map(|t| view! { <p class="hint">{t}</p> })}
-            <Show when=move || !s.cheer.get().1.is_empty()>
-                <p class="bubble" role="status" data-seq=move || s.cheer.get().0>{move || s.cheer.get().1}</p>
-            </Show>
         </div>
     }
 }
@@ -1020,12 +1075,76 @@ fn SettingsView() -> impl IntoView {
             <Toggle label="階段提示音與震動" hint="不同階段嗶不同次數（手機瀏覽器才有震動）" on=flag(|x| x.cues) set=move |v| s.update_settings(|x| x.cues = v)/>
             <Toggle label="語音播報" hint="階段開始、動作說明、每 5 分鐘報時、讀秒" on=flag(|x| x.voice) set=move |v| s.update_settings(|x| x.voice = v)/>
             <Toggle label="動作口令" hint="換邊、還有幾秒、最後 5 秒讀秒" on=flag(|x| x.coach_voice) set=move |v| s.update_settings(|x| x.coach_voice = v)/>
-            <Toggle label="超慢跑鼓勵語音" hint="每 1 到 2 分鐘一句，點跑步的小圓圈也會說" on=flag(|x| x.cheer_voice) set=move |v| s.update_settings(|x| x.cheer_voice = v)/>
+            <Toggle label="超慢跑鼓勵語音" hint="每 1 到 2 分鐘一句，點一下小人物也會說" on=flag(|x| x.cheer_voice) set=move |v| s.update_settings(|x| x.cheer_voice = v)/>
             <button class="btn ghost" on:click=move |_| {
                 web::audio_context();
                 let l = voice::cheer((web::random() * 24.0) as usize);
                 web::say(&l.id, &l.fallback, true);
             }>"試聽語音"</button>
+        </section>
+
+        <section class="card">
+            <h2>"陪跑小人物"</h2>
+            <div class="mascot-picks">
+                {Style::ALL
+                    .into_iter()
+                    .map(|st| {
+                        view! {
+                            <button
+                                class="mpick"
+                                class:on=move || s.settings.with(|x| x.mascot == st)
+                                aria-pressed=move || s.settings.with(|x| x.mascot == st).to_string()
+                                on:click=move |_| {
+                                    s.update_settings(|x| x.mascot = st);
+                                    web::preload_image(&mascot::run_url(st));
+                                }
+                            >
+                                <img src=mascot::idle_url(st) alt="" class:pixel=st.pixel_art() width="48" height="60"/>
+                                <b>{st.name_zh()}</b>
+                                <small>{st.kind_zh()}</small>
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+            <h2>"風景"</h2>
+            <div class="seg-btns">
+                {ScenePref::ALL
+                    .into_iter()
+                    .map(|p| {
+                        view! {
+                            <button class:on=move || s.settings.with(|x| x.scene == p) on:click=move |_| s.update_settings(|x| x.scene = p)>
+                                {p.name_zh()}
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+            <Toggle label="風景跟著捲動" hint="跑步時風景跟著估算距離往後退；系統開了「減少動態效果」時不會捲動" on=flag(|x| x.scene_moving) set=move |v| s.update_settings(|x| x.scene_moving = v)/>
+            <p class="hint">"小人物依你的節拍踏步，每一步剛好對齊拍子；暖身、肌力與伸展時會示範動作。"</p>
+        </section>
+
+        <section class="card">
+            <h2>"背景音樂"</h2>
+            <div class="seg-btns">
+                {Music::ALL
+                    .into_iter()
+                    .map(|m| {
+                        view! {
+                            <button class:on=move || s.settings.with(|x| x.music == m) on:click=move |_| s.update_settings(|x| x.music = m)>
+                                {m.label()}
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+            <p class="hint">{move || s.settings.with(|x| x.music.desc())}</p>
+            <Stepper label="音樂音量" value=get(|x| x.music_vol) min=0 max=100 step=5 unit="%" set=move |v| s.update_settings(|x| x.music_vol = v)/>
+            <button class="btn ghost" on:click=move |_| {
+                web::audio_context();
+                s.toggle_preview();
+            }>{move || if s.preview.get() { "停止試聽" } else { "試聽音樂（含節拍）" }}</button>
+            <p class="hint">"超慢跑時音樂跟著你的節拍，一拍一拍對齊；暖身、肌力與伸展時只有柔和的和弦。全部是即時合成的，離線也能聽。說話或倒數時音樂會自動壓低。"</p>
         </section>
 
         <section class="card">
