@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlowJog 隱私權政策</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; padding: 24px 18px 56px; background: #fff6ea; color: #3b2a1f; font: 16px/1.75 system-ui, "PingFang TC", "Noto Sans TC", sans-serif; }
+  main { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 28px 0 6px; }
+  p, li { margin: 6px 0; }
+  ul { padding-left: 1.2em; }
+  .meta { color: #8a6f5c; font-size: 0.9rem; }
+  a { color: #c2501f; }
+</style>
+</head>
+<body>
+<main>
+<h1>SlowJog 隱私權政策</h1>
+<p class="meta">最後更新：2026 年 11 月 6 日｜適用範圍：SlowJog 超慢跑 Android App 與網頁版（<a href="https://cornming.github.io/slowjog/">cornming.github.io/slowjog</a>）</p>
+
+<p>SlowJog 沒有廣告、不追蹤你，也不需要註冊帳號。下面說明它會處理哪些資料、放在哪裡、為什麼。</p>
+
+<h2>一、只放在你手機上的資料</h2>
+<ul>
+  <li>運動紀錄（日期、時間長度、超慢跑時間、節拍）、你的設定（課表分鐘數、提醒時間、小人物外型、歌單連結、最近做過的動作）。</li>
+  <li>Android App 存在手機的 App 專用空間；網頁版存在瀏覽器的 localStorage。<strong>這些資料不會上傳到任何伺服器。</strong>解除安裝 App 或清除瀏覽器資料就會刪除；也可以在 App 的「設定 → 資料」匯出成 CSV。</li>
+</ul>
+
+<h2>二、匿名完成統計（可關閉）</h2>
+<ul>
+  <li>達成當次目標（課表走完，或時間／距離目標到了）並按「儲存並結束」時，會匿名送出一筆紀錄，內容只有：<strong>作品名稱、完成當下的小時（手機的當地時間 0 到 23）</strong>，伺服器端另外記下收到的時間。</li>
+  <li>沒有帳號、沒有裝置編號、不收集位置、不含你的運動內容，也不使用 cookie。</li>
+  <li>用途是了解「有多少人真的把一次運動做完、通常在什麼時段」，大家的統計公開在 <a href="https://cornming.github.io/stats/">cornming.github.io/stats</a>。</li>
+  <li>Android App 可以在「設定 → 資料」關掉；關掉後不會送出任何紀錄，其他功能不受影響。</li>
+  <li>收集端是一份 Google 試算表加 Google Apps Script，所以這筆紀錄會經過 Google 的伺服器。</li>
+</ul>
+
+<h2>三、連到哪些網站</h2>
+<ul>
+  <li><strong>GitHub</strong>：只有從 GitHub 下載安裝的版本，才會檢查是否有新版並下載更新；從 Google Play 安裝的版本不含這個功能，更新由 Google Play 處理。連線時 GitHub 會看到你的 IP 位址，這是任何網路連線都有的情況，SlowJog 不會另外記錄。</li>
+  <li><strong>Google Apps Script</strong>：僅用於上面的匿名完成統計。</li>
+  <li><strong>Spotify</strong>：你在設定貼上歌單連結時，App 只是用 Spotify App 或瀏覽器打開那個連結，不會讀取你的 Spotify 帳號或播放紀錄。</li>
+  <li>網頁版放在 GitHub Pages，GitHub 可能依其政策保留一般的伺服器連線紀錄。</li>
+</ul>
+
+<h2>四、Android 權限用途</h2>
+<ul>
+  <li><strong>通知、開機啟動</strong>：每日運動提醒（開機後重新安排提醒時間）。</li>
+  <li><strong>前景服務、媒體播放</strong>：運動中讓節拍器在螢幕關閉時繼續出聲。</li>
+  <li><strong>震動</strong>：階段切換與完成時震動提示。</li>
+  <li><strong>網路</strong>：上面第二、三項。</li>
+</ul>
+
+<h2>五、兒童</h2>
+<p>SlowJog 不蒐集能識別個人的資料，也不針對特定年齡層。</p>
+
+<h2>六、政策變更與聯絡</h2>
+<p>政策有變動時會更新本頁並修改上方日期。有任何問題請到 <a href="https://github.com/cornming/slowjog/issues">GitHub Issues</a> 留言。</p>
+</main>
+</body>
+</html>
