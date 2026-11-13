@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>背景播放測試</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; padding: 20px 16px 48px; background: #fff6ea; color: #3b2a1f; font: 16px/1.6 system-ui, "PingFang TC", "Noto Sans TC", sans-serif; max-width: 560px; margin-inline: auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 8px; }
+  h2 { font-size: 1.05rem; margin: 24px 0 6px; }
+  p { margin: 8px 0; }
+  ol { padding-left: 1.3em; margin: 8px 0; }
+  button { display: block; width: 100%; margin: 8px 0; padding: 13px 16px; border: 0; border-radius: 14px; background: #ff7a45; color: #fff; font: inherit; font-weight: 700; text-align: left; }
+  button.sub { background: #ffe3d3; color: #c2501f; }
+  button.stop { background: #e5566d; }
+  .pair { display: flex; gap: 10px; }
+  .pair button { text-align: center; }
+  label { display: block; margin: 6px 0; }
+  pre { margin: 6px 0; padding: 10px 12px; border-radius: 12px; background: #fff; white-space: pre-wrap; word-break: break-all; font: 12.5px/1.5 ui-monospace, Menlo, monospace; }
+  #log { max-height: 60vh; overflow: auto; }
+  .note { color: #8a6f5c; font-size: 0.9rem; }
+  input[type=number] { width: 5em; padding: 8px; border-radius: 8px; border: 1px solid #f3dcc3; font: inherit; }
+</style>
+</head>
+<body>
+<h1>背景播放測試</h1>
+<p>目的：查「鎖定螢幕或切到別的 App 之後，節拍和語音還聽不聽得到」。瑜伽和超慢跑的網頁版都要靠這個結果決定做法。</p>
+<ol>
+  <li>先把下面的「<b>回傳測試紀錄</b>」打開（這樣不用複製貼上）。</li>
+  <li>照預設選項，按<b>一個</b>測試的「開始」。</li>
+  <li>確認有聽到聲音後，<b>按電源鍵鎖定螢幕</b>（或切到別的 App），放 <b>1 到 2 分鐘</b>，專心聽。</li>
+  <li>回到這個頁面，按下面的「回報」，再告訴開發者你測完了。</li>
+</ol>
+<p class="note">iPhone 請用 Safari 開，不要從 LINE 開（之後可以再測 LINE）；Android 請用 Chrome。三個測試各測一次，每次開始前先重新整理頁面。</p>
+
+<h2>你的瀏覽器</h2>
+<pre id="env">讀取中…</pre>
+
+<h2>回傳測試紀錄</h2>
+<div id="diag"></div>
+
+<h2>選項</h2>
+<label><input type="checkbox" id="optPlayback" checked> 設成「靜音模式也要出聲」（audioSession = playback，iPhone）</label>
+<label><input type="checkbox" id="optReuse" checked> 語音：重複使用同一個 audio 元素</label>
+<label><input type="checkbox" id="optMedia" checked> 鎖屏顯示播放控制（Media Session）</label>
+
+<h2>測試 1　節拍（超慢跑用）</h2>
+<p class="note">照 App 的做法：JS 計時器每 25 毫秒排程，Web Audio 合成，180 BPM。</p>
+<div class="pair"><button id="b1" >開始</button><button id="s1" class="sub stop">停止</button></div>
+
+<h2>測試 2　語音（瑜伽、超慢跑的提示用）</h2>
+<p class="note">照 App 的做法：JS 計時器每 15 秒觸發，播放一段語音檔。</p>
+<div class="pair"><button id="b2">開始</button><button id="s2" class="sub stop">停止</button></div>
+
+<h2>測試 3　預先合成音軌（不靠 JS 計時器）</h2>
+<p class="note">把 3 分鐘的節拍加語音（每 20 秒一句）先混成一條音軌，用 audio 播放。合成約要幾秒。</p>
+<div class="pair"><button id="b3">合成並播放</button><button id="s3" class="sub stop">停止</button></div>
+
+<h2>回報</h2>
+<p class="note">鎖屏或切到別的 App 的時候：</p>
+<div class="pair"><button id="r1" class="sub">一直都有聲音</button><button id="r2" class="sub">中途停了</button></div>
+<button id="r3" class="sub">完全沒聲音</button>
+<p class="note">如果中途停了，大約是鎖屏後第幾秒：<input type="number" id="sec" inputmode="numeric" min="0" max="600"> 秒　<button id="r4" class="sub" style="display:inline-block;width:auto;padding:8px 14px">記下</button></p>
+<p class="note">回到頁面、解鎖之後：</p>
+<div class="pair"><button id="r5" class="sub">聲音恢復了</button><button id="r6" class="sub">沒有恢復</button></div>
+
+<h2>紀錄</h2>
+<pre id="log"></pre>
+<button id="copy" class="sub">複製紀錄</button>
+
+<script src="diag-upload.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const T0 = performance.now();
+const stamp = () => { const s = Math.floor((performance.now() - T0) / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const log = (m) => {
+  const line = `[${stamp()}] ${m}`, el = $('log');
+  el.textContent += line + '\n'; el.scrollTop = el.scrollHeight;
+  if (window.DiagUpload) DiagUpload.push(line);
+};
+const session = () => navigator.audioSession || null;
+const VOICES = ['voice/cheer_01.mp3', 'voice/cheer_02.mp3', 'voice/cheer_03.mp3'];
+
+// ── 環境 ─────────────────────────────────────
+const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+$('env').textContent = [
+  'userAgent：' + navigator.userAgent,
+  '主畫面 App 模式：' + (standalone ? '是' : '否'),
+  'AudioContext：' + (window.AudioContext ? '有' : window.webkitAudioContext ? '只有 webkit 前綴版' : '沒有'),
+  'OfflineAudioContext：' + (window.OfflineAudioContext ? '有' : '沒有'),
+  'audioSession：' + (session() ? '有（type = ' + session().type + '）' : '沒有'),
+  'mediaSession：' + ('mediaSession' in navigator ? '有' : '沒有'),
+].join('\n');
+
+if (window.DiagUpload) DiagUpload.mount($('diag'), 'bg-audio-test.html', () => $('env').textContent + '\n' + $('log').textContent);
+// 回到畫面時，AudioContext 如果不是 running（iOS 會把它改成 interrupted／suspended），試著恢復並記錄結果。
+// 這不在使用者手勢內，所以能不能成功本身就是要測的東西。
+function tryResume(why) {
+  if (!ctx || ctx.state === 'running' || ctx.state === 'closed') return;
+  const before = ctx.state;
+  ctx.resume().then(
+    () => log(`回到畫面自動 resume()（${why}）：成功，${before} → ${ctx.state}`),
+    (e) => log(`回到畫面自動 resume()（${why}）：失敗 ${e && e.name}，仍是 ${ctx.state}`)
+  );
+}
+document.addEventListener('visibilitychange', () => {
+  log('頁面 → ' + document.visibilityState);
+  if (document.visibilityState === 'visible') tryResume('visibilitychange');
+});
+addEventListener('pagehide', () => log('pagehide'));
+addEventListener('pageshow', () => { log('pageshow'); tryResume('pageshow'); });
+
+// ── 共用 ─────────────────────────────────────
+let ctx = null;
+function getCtx() {
+  if (!ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC();
+    ctx.onstatechange = () => log('AudioContext 狀態 → ' + ctx.state + '（ctx 時間 ' + ctx.currentTime.toFixed(1) + 's）');
+  }
+  return ctx;
+}
+
+function applyOptions() {
+  if (session()) {
+    const want = $('optPlayback').checked ? 'playback' : 'auto';
+    try { if (session().type !== want) { session().type = want; log('audioSession.type → ' + session().type); } }
+    catch (e) { log('設定 audioSession.type 失敗：' + e); }
+  }
+}
+
+let running = 0;
+function mediaOn() {
+  running++;
+  if ($('optMedia').checked && 'mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: '背景播放測試', artist: 'SlowJog' });
+      navigator.mediaSession.playbackState = 'playing';
+    } catch (e) { log('Media Session 設定失敗：' + e); }
+  }
+}
+function mediaOff() {
+  running = Math.max(0, running - 1);
+  if (!running && 'mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'none'; } catch (e) {} }
+}
+
+// 1000 Hz 的短音，和 App 的節拍器一樣
+function click(c, when) {
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'sine'; o.frequency.value = 1000;
+  g.gain.setValueAtTime(0.8, when);
+  g.gain.exponentialRampToValueAtTime(0.001, when + 0.04);
+  o.connect(g); g.connect(c.destination);
+  o.start(when); o.stop(when + 0.05);
+}
+
+// ── 測試 1：節拍 ─────────────────────────────
+let beat = null;
+$('b1').onclick = async () => {
+  if (beat) { log('節拍已經在跑'); return; }
+  applyOptions();
+  const c = getCtx();
+  try { await c.resume(); } catch (e) { log('resume() 失敗：' + e); }
+  const period = 60 / 180;
+  const st = { next: c.currentTime + 0.1, ticks: 0, last: performance.now(), maxGap: 0, clicks: 0, wall0: performance.now(), ctx0: c.currentTime };
+  st.timer = setInterval(() => {
+    const now = performance.now();
+    st.maxGap = Math.max(st.maxGap, now - st.last); st.last = now; st.ticks++;
+    const ahead = document.hidden ? 5 : 0.2; // 和 App 一樣：背景時預排 5 秒
+    while (st.next < c.currentTime + ahead) { click(c, st.next); st.next += period; st.clicks++; }
+  }, 25);
+  st.report = setInterval(() => {
+    const wall = (performance.now() - st.wall0) / 1000, ctxT = c.currentTime - st.ctx0;
+    log(`節拍：排程 ${st.ticks} 次、這 10 秒最大間隔 ${Math.round(st.maxGap)} ms、已排 ${st.clicks} 拍、ctx=${c.state}、實際過了 ${wall.toFixed(0)}s／ctx 走了 ${ctxT.toFixed(0)}s、頁面=${document.visibilityState}`);
+    st.maxGap = 0;
+  }, 10000);
+  beat = st; mediaOn(); log('節拍開始（180 BPM）');
+};
+$('s1').onclick = () => {
+  if (!beat) return;
+  clearInterval(beat.timer); clearInterval(beat.report); beat = null; mediaOff(); log('節拍停止');
+};
+
+// ── 測試 2：語音 ─────────────────────────────
+let voice = null;
+$('b2').onclick = () => {
+  if (voice) { log('語音已經在跑'); return; }
+  applyOptions();
+  const INTERVAL = 15000;
+  const st = { n: 0, t0: performance.now(), el: $('optReuse').checked ? new Audio() : null };
+  const fire = () => {
+    st.n++;
+    const n = st.n, planned = n * INTERVAL - INTERVAL; // 第 1 句是按下當下（在使用者手勢內）
+    const late = performance.now() - st.t0 - planned;
+    const a = st.el || new Audio();
+    a.src = VOICES[(n - 1) % VOICES.length];
+    a.onended = () => log(`語音 #${n}：播完（頁面=${document.visibilityState}）`);
+    a.play()
+      .then(() => log(`語音 #${n}：開始播放（排定第 ${planned / 1000}s、晚了 ${Math.round(late)} ms、頁面=${document.visibilityState}）`))
+      .catch((e) => log(`語音 #${n}：播放失敗 ${e.name}（晚了 ${Math.round(late)} ms、頁面=${document.visibilityState}）`));
+    st.timer = setTimeout(fire, n * INTERVAL - (performance.now() - st.t0));
+  };
+  voice = st; mediaOn(); log('語音開始（每 15 秒一句，' + ($('optReuse').checked ? '重複使用同一個 audio' : '每次新建 audio') + '）');
+  fire();
+};
+$('s2').onclick = () => {
+  if (!voice) return;
+  clearTimeout(voice.timer); if (voice.el) voice.el.pause(); voice = null; mediaOff(); log('語音停止');
+};
+
+// ── 測試 3：預先合成音軌 ─────────────────────
+function encodeWav(buf) {
+  const data = buf.getChannelData(0), n = data.length, rate = buf.sampleRate;
+  const out = new ArrayBuffer(44 + n * 2), v = new DataView(out);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) { const s = Math.max(-1, Math.min(1, data[i])); v.setInt16(44 + i * 2, Math.round(s * 32767), true); }
+  return new Blob([out], { type: 'audio/wav' });
+}
+
+let track = null;
+$('b3').onclick = async () => {
+  if (track) { log('音軌已經在播'); return; }
+  applyOptions();
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OAC) { log('這個瀏覽器沒有 OfflineAudioContext，無法合成'); return; }
+  // 在使用者手勢內先建立並「解鎖」要播的 audio 元素，合成完才有資格在鎖屏時繼續播
+  const el = new Audio();
+  el.play().catch(() => {});
+  try {
+    log('合成 3 分鐘音軌中…');
+    const rate = 22050, secs = 180, t0 = performance.now();
+    const off = new OAC(1, rate * secs, rate);
+    for (let t = 0.1; t < secs - 1; t += 60 / 180) click(off, t);
+    const bufs = [];
+    for (const src of VOICES) bufs.push(await off.decodeAudioData(await (await fetch(src)).arrayBuffer()));
+    for (let k = 0, t = 10; t < secs - 5; t += 20, k++) { const s = off.createBufferSource(); s.buffer = bufs[k % bufs.length]; s.connect(off.destination); s.start(t); }
+    const rendered = await off.startRendering();
+    const blob = encodeWav(rendered);
+    log(`合成完成：${((performance.now() - t0) / 1000).toFixed(1)} 秒、檔案 ${(blob.size / 1048576).toFixed(1)} MB`);
+    el.src = URL.createObjectURL(blob);
+    el.onended = () => { log('音軌播完'); track = null; mediaOff(); };
+    await el.play();
+    track = { el }; mediaOn();
+    log('音軌開始播放（節拍加每 20 秒一句語音，共 3 分鐘）');
+    track.report = setInterval(() => log(`音軌：播到 ${el.currentTime.toFixed(0)}s、paused=${el.paused}、頁面=${document.visibilityState}`), 10000);
+  } catch (e) { log('合成或播放失敗：' + e); }
+};
+$('s3').onclick = () => {
+  if (!track) return;
+  clearInterval(track.report); track.el.pause(); track = null; mediaOff(); log('音軌停止');
+};
+
+// ── 回報與複製 ───────────────────────────────
+$('r1').onclick = () => log('回報：鎖屏／切到別的 App 時，一直都有聲音');
+$('r2').onclick = () => log('回報：鎖屏／切到別的 App 時，中途停了');
+$('r3').onclick = () => log('回報：鎖屏／切到別的 App 時，完全沒聲音');
+$('r4').onclick = () => log('回報：大約在鎖屏後第 ' + ($('sec').value || '？') + ' 秒停的');
+$('r5').onclick = () => log('回報：解鎖回到頁面後，聲音恢復了');
+$('r6').onclick = () => log('回報：解鎖回到頁面後，沒有恢復');
+$('copy').onclick = async () => {
+  const text = $('env').textContent + '\n\n' + $('log').textContent;
+  try { await navigator.clipboard.writeText(text); log('已複製'); }
+  catch (e) { log('自動複製失敗，請長按上面的紀錄自己複製'); }
+};
+</script>
+</body>
+</html>

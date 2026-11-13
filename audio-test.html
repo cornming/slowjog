@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>SlowJog 聲音測試</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; padding: 20px 16px 40px; background: #fff6ea; color: #3b2a1f; font: 16px/1.6 system-ui, "PingFang TC", "Noto Sans TC", sans-serif; max-width: 560px; margin-inline: auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 8px; }
+  h2 { font-size: 1.05rem; margin: 22px 0 6px; }
+  p { margin: 8px 0; }
+  button { display: block; width: 100%; margin: 10px 0; padding: 14px 16px; border: 0; border-radius: 14px; background: #ff7a45; color: #fff; font: inherit; font-weight: 700; text-align: left; }
+  button.sub { background: #ffe3d3; color: #c2501f; }
+  .pair { display: flex; gap: 10px; }
+  .pair button { margin: 6px 0; text-align: center; }
+  pre { margin: 6px 0; padding: 10px 12px; border-radius: 12px; background: #fff; white-space: pre-wrap; word-break: break-all; font: 13px/1.5 ui-monospace, Menlo, monospace; }
+  .note { color: #8a6f5c; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<h1>SlowJog 聲音測試</h1>
+<p>用來查「節拍器沒有聲音」的原因。請把手機音量調到中間，照順序按下面的按鈕，每按一個就留意有沒有聽到 3 聲「答」，<b>聽完立刻按「有聽到／沒聽到」</b>。</p>
+<p class="note"><b>測之前請先確認靜音模式是開著還是關著，並按下面對應的按鈕記錄。最好是「靜音開著」測一輪，再「靜音關著」測一輪；每一輪開始前先重新整理這個頁面。</b></p>
+
+<h2>你的瀏覽器</h2>
+<pre id="env">讀取中…</pre>
+
+<h2>回傳測試紀錄</h2>
+<div id="diag"></div>
+
+<h2>測試</h2>
+<button id="a">A．節拍器的出聲方式（Web Audio 合成）</button>
+<button id="b">B．語音的出聲方式（播放音檔）</button>
+<button id="c">C．先設成「靜音模式也要出聲」，再播一次 A</button>
+<button id="e">E．跟 App 同樣的順序：先設成「靜音模式也要出聲」，再「新建」一個 AudioContext 才播</button>
+<button id="d" class="sub">D．還原成預設</button>
+
+<h2>回報</h2>
+<p class="note">現在的靜音模式：</p>
+<div class="pair"><button id="mon" class="sub">開著</button><button id="moff" class="sub">關著</button></div>
+<p class="note">剛剛按的那一項，有沒有聽到 3 聲：</p>
+<div class="pair"><button id="heard" class="sub">有聽到</button><button id="nothing" class="sub">沒聽到</button></div>
+<p class="note">測完請告訴開發者。如果沒有打開上面的「回傳測試紀錄」，請把下面的紀錄複製貼給開發者。</p>
+
+<h2>紀錄</h2>
+<pre id="log"></pre>
+<button id="copy" class="sub">複製紀錄</button>
+
+<script src="diag-upload.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const log = (msg) => {
+  const line = new Date().toLocaleTimeString() + '  ' + msg;
+  $('log').textContent += line + '\n';
+  if (window.DiagUpload) DiagUpload.push(line);
+};
+const session = () => navigator.audioSession || null;
+let ctx = null;
+let last = '';
+const mark = (name) => { last = name; };
+
+function showEnv() {
+  $('env').textContent = [
+    'userAgent：' + navigator.userAgent,
+    'AudioContext：' + (window.AudioContext ? '有' : window.webkitAudioContext ? '只有 webkit 前綴版' : '沒有'),
+    'audioSession：' + (session() ? '有（目前 type = ' + session().type + '）' : '沒有（iOS 17 以上才有）'),
+    '觸控點數：' + navigator.maxTouchPoints,
+  ].join('\n');
+}
+
+function getCtx() {
+  if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; ctx = new AC(); }
+  return ctx;
+}
+
+// 和節拍器一樣的做法：用振盪器合成 1000 Hz 的短音，排程在 AudioContext 的時間上
+async function webAudioBeeps() {
+  const c = getCtx();
+  try { await c.resume(); } catch (e) { log('resume() 失敗：' + e); }
+  log('AudioContext 狀態：' + c.state);
+  const t = c.currentTime + 0.05;
+  for (let i = 0; i < 3; i++) {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = 1000;
+    g.gain.setValueAtTime(0.8, t + i * 0.5);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.5 + 0.04);
+    o.connect(g); g.connect(c.destination);
+    o.start(t + i * 0.5); o.stop(t + i * 0.5 + 0.05);
+  }
+  log('已排程 3 聲');
+}
+
+// 和語音一樣的做法：用 <audio> 播放一個音檔（這裡即時產生一個 3 聲 1000 Hz 的 WAV）
+function beepWav() {
+  const rate = 22050, n = Math.floor(rate * 1.3);
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) {
+    const t = i / rate, k = t % 0.5;
+    const amp = (t < 1.05 && k < 0.05) ? Math.exp(-k * 80) * 0.8 : 0;
+    v.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 1000 * t) * amp * 32767), true);
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+$('a').onclick = () => { mark('A'); log('按下 A'); webAudioBeeps(); };
+
+$('b').onclick = () => {
+  mark('B');
+  log('按下 B');
+  const a = new Audio(URL.createObjectURL(beepWav()));
+  a.play().then(() => log('音檔開始播放（已排程 3 聲）')).catch((e) => log('音檔播放失敗：' + e));
+};
+
+$('c').onclick = async () => {
+  mark('C');
+  log('按下 C');
+  if (!session()) { log('這個瀏覽器沒有 audioSession（需要 iOS 17 以上），無法測試這一項'); return; }
+  try { session().type = 'playback'; log('已把 audioSession.type 設成 playback（現在是 ' + session().type + '）'); }
+  catch (e) { log('設定 audioSession.type 失敗：' + e); }
+  await webAudioBeeps();
+};
+
+// 和 App 一樣的順序：先把 audioSession.type 設成 playback，再「新建」AudioContext 才出聲
+$('e').onclick = async () => {
+  mark('E');
+  log('按下 E');
+  if (!session()) { log('這個瀏覽器沒有 audioSession（需要 iOS 17 以上），無法測試這一項'); return; }
+  try { session().type = 'playback'; log('已把 audioSession.type 設成 playback（現在是 ' + session().type + '）'); }
+  catch (e) { log('設定 audioSession.type 失敗：' + e); }
+  if (ctx) { try { await ctx.close(); log('已關閉舊的 AudioContext'); } catch (e) { log('關閉舊的 AudioContext 失敗：' + e); } ctx = null; }
+  log('新建 AudioContext');
+  await webAudioBeeps();
+};
+
+$('mon').onclick = () => log('回報：靜音模式 = 開著');
+$('moff').onclick = () => log('回報：靜音模式 = 關著');
+$('heard').onclick = () => log('回報：' + (last || '（還沒測試）') + ' 有聽到');
+$('nothing').onclick = () => log('回報：' + (last || '（還沒測試）') + ' 沒聽到');
+
+$('d').onclick = () => {
+  log('按下 D');
+  if (session()) { session().type = 'auto'; log('已還原成 auto（現在是 ' + session().type + '）'); }
+  else log('這個瀏覽器沒有 audioSession，不需要還原');
+};
+
+$('copy').onclick = async () => {
+  const text = $('env').textContent + '\n\n' + $('log').textContent;
+  try { await navigator.clipboard.writeText(text); log('已複製'); }
+  catch (e) { log('自動複製失敗，請長按上面的文字自己複製'); }
+};
+
+showEnv();
+if (window.DiagUpload) DiagUpload.mount($('diag'), 'audio-test.html', () => $('env').textContent + '\n' + $('log').textContent);
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ff7a45" />
+    <meta name="description" content="超慢跑節拍器，加上暖身、肌力、伸展課表與教練語音。" />
+    <title>SlowJog 超慢跑</title>
+    <script>
+      // 介面風格（設定 > 外觀）在程式載入前先套上，深色才不會先閃一下淺色。存的字和 data-theme 用的一樣（見 app.rs 的 Theme）。
+      try {
+        var t = JSON.parse(localStorage.getItem("slowjog:settings") || "{}").theme;
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+
+    
+<script type="module">
+import init, * as bindings from '/slowjog/slowjog-web-312baf515e4251c7.js';
+const wasm = await init({ module_or_path: '/slowjog/slowjog-web-ad77b7bfcc18aa41_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+    <link rel="stylesheet" href="/slowjog/style-657eb862e5ce8820.css" integrity="sha384-Z7C1eqmRBSLmFPPtMiOm1rpIscKn+AIm2OWhHYNmrRwYlkAbM4sEYR4buGCb7Dqn"/>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+      }
+    </script>
+  <link rel="modulepreload" href="/slowjog/slowjog-web-312baf515e4251c7.js" crossorigin="anonymous" integrity="sha384-t0tG/KDjrqPr4Ouod1dmVsXO+j6CiDI/CTOAKy4OkwFPK8hXvnjDWEFcZwHmSbLT"><link rel="preload" href="/slowjog/slowjog-web-ad77b7bfcc18aa41_bg.wasm" crossorigin="anonymous" integrity="sha384-hL73izjDlZZ3kvqTDMdXO0M/53UgXlqj9Yj9G71wUM5/h5A49NT0/mNN66CgKCk3" as="fetch" type="application/wasm"></head>
+  <body></body>
+</html>
